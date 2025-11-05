@@ -1,0 +1,8 @@
+{
+  "name": "Password Generator",
+  "id": "password_generator",
+  "desc": "Buat password acak kuat: length, angka, simbol, huruf besar/kecil.",
+  "entry": "password_generator.py",
+  "lang": "python",
+  "security": false
+}

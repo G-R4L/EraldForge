@@ -1,255 +1,281 @@
 #!/data/data/com.termux/files/usr/bin/env python3
 """
-EraldForge v2.0 — Advanced Termux Multi-Tool Launcher
+EraldForge v2.1 - Launcher utama
 By Gerald (G-R4L)
+
+Catatan:
+- Launcher mendeteksi tools di folder tools/
+- Theme: "hacker" atau "clean" (env ERALDFORGE_THEME atau pilih saat runtime)
+- Language: disimpan di ~/.eraldforge_lang.cfg (values: "id" atau "en")
+- Tidak memaksa pemasangan paket; tool yang butuh pip akan memberikan pesan instruksi jika belum terpasang.
 """
 
-import os, sys, json, subprocess, platform, time, socket, psutil
+import os
+import sys
+import json
+import subprocess
+import time
+import socket
 from pathlib import Path
 from datetime import datetime
 
 BASE = Path(__file__).resolve().parent
 TOOLS_DIR = BASE / "tools"
 CONSENT_LOG = Path.home() / ".eraldforge_consent.log"
-VERSION = "2.0"
+LANG_CFG = Path.home() / ".eraldforge_lang.cfg"
+VERSION = "2.1"
 
-# Color themes
+# Themes: hacker (green-ish) and clean (blue/cyan)
 THEMES = {
-    "default": {"r":"\033[31m","b":"\033[34m","y":"\033[33m","g":"\033[32m","c":"\033[36m","w":"\033[37m"},
-    "matrix":  {"r":"\033[32m","b":"\033[32m","y":"\033[92m","g":"\033[92m","c":"\033[32m","w":"\033[37m"},
-    "cyberpunk":{"r":"\033[35m","b":"\033[36m","y":"\033[95m","g":"\033[96m","c":"\033[36m","w":"\033[37m"},
+    "hacker": {"primary":"\033[32m","accent":"\033[36m","muted":"\033[37m","warn":"\033[33m","err":"\033[31m","bold":"\033[1m","reset":"\033[0m"},
+    "clean":  {"primary":"\033[34m","accent":"\033[36m","muted":"\033[37m","warn":"\033[33m","err":"\033[31m","bold":"\033[1m","reset":"\033[0m"}
 }
-theme_name = "default"
-C = THEMES[theme_name]
-C["reset"] = "\033[0m"; C["bold"] = "\033[1m"
+# default theme
+THEME_NAME = os.environ.get("ERALDFORGE_THEME","").lower() or "clean"
+if THEME_NAME not in THEMES: THEME_NAME = "clean"
+C = THEMES[THEME_NAME]
 
-# Banner
-BANNER = f"""
-{C['r']} _______  ______ _______        {C['b']}______  _______  _____   ______  ______ _______
-{C['r']} |______ |_____/ |_____| |      {C['b']}|     \\ |______ |     | |_____/ |  ____ |______
-{C['r']} |______ |    \\_ |     | |_____ {C['b']}|_____/ |       |_____| |    \\_ |_____| |______
-{C['reset']}
-"""
+# Banner (as requested)
+BANNER = (
+"   ____         __   ______                 \n"
+"  / __/______ _/ /__/ / __/__  _______ ____ \n"
+" / _// __/ _ `/ / _  / _// _ \\/ __/ _ `/ -_)\n"
+"/___/_/  \\_,_/_/\\_,_/_/  \\___/_/  \\_, /\\__/ \n"
+"                                 /___/      \n"
+)
 
-def clear(): os.system("clear" if os.name != "nt" else "cls")
+# translations
+STRINGS = {
+    "en": {
+        "tagline":"✦ Ethical • Modular • Termux-Native ✦",
+        "menu_title":"EraldForge Main Menu",
+        "update":"Periksa update (git pull)",
+        "theme":"Ganti tema",
+        "lang":"Ganti bahasa",
+        "about":"Tentang EraldForge",
+        "exit":"Keluar",
+        "prompt":"Pilih nomor atau huruf: ",
+        "no_tools":"Tidak ada tool ditemukan di folder 'tools/'.",
+        "press_enter":"Tekan Enter untuk kembali...",
+        "consent_title":"=== Required consent for security tools ===",
+        "consent_prompt":"Type 'yes' to continue: ",
+        "consent_denied":"Canceled by user.",
+        "invalid":"Pilihan tidak valid.",
+        "ok_update":"✔ Update selesai!",
+        "no_update":"Tidak ada update baru."
+    },
+    "id": {
+        "tagline":"✦ Ethical • Modular • Termux-Native ✦",
+        "menu_title":"Menu Utama EraldForge",
+        "update":"Periksa update (git pull)",
+        "theme":"Ganti tema",
+        "lang":"Ganti bahasa",
+        "about":"Tentang EraldForge",
+        "exit":"Keluar",
+        "prompt":"Pilih nomor atau huruf: ",
+        "no_tools":"Tidak ada tool ditemukan di folder 'tools/'.",
+        "press_enter":"Tekan Enter untuk kembali...",
+        "consent_title":"=== Persetujuan wajib untuk fitur keamanan ===",
+        "consent_prompt":"Ketik 'yes' untuk melanjutkan: ",
+        "consent_denied":"Dibatalkan oleh pengguna.",
+        "invalid":"Pilihan tidak valid.",
+        "ok_update":"✔ Update selesai!",
+        "no_update":"Tidak ada update baru."
+    }
+}
+
+# load language setting or ask once
+def load_lang():
+    if LANG_CFG.exists():
+        v = LANG_CFG.read_text().strip()
+        if v in ("id","en"): return v
+    # ask
+    print("Select language / Pilih bahasa:")
+    print("1) Bahasa Indonesia")
+    print("2) English")
+    a = input("Choice [1/2, default 1]: ").strip()
+    v = "en" if a=="2" else "id"
+    try:
+        LANG_CFG.write_text(v)
+    except Exception:
+        pass
+    return v
+
+LANG = load_lang()
+S = STRINGS[LANG]
+
+def clear():
+    os.system("clear" if os.name!="nt" else "cls")
 
 def animate_startup():
     clear()
-    boot_lines = [
-        "[BOOT] Initializing EraldForge kernel...",
-        "[BOOT] Loading tool registry...",
-        "[OK] Modules loaded successfully.",
-        "[OK] Environment ready.",
-        ""
-    ]
-    for line in boot_lines:
-        print(f"\033[32m{line}\033[0m")
-        time.sleep(0.5)
-    time.sleep(0.4)
-
-def fade_banner():
-    clear()
-    for _ in range(3):
-        print(BANNER)
-        time.sleep(0.2)
-        clear()
-    print(BANNER)
-    time.sleep(0.3)
-
-def print_banner():
-    fade_banner()
-    print(f"{C['c']}        ✦ Ethical • Modular • Termux-Native ✦{C['reset']}")
-    print(f"{C['y']}══════════════════════════════════════════════════════════{C['reset']}\n")
-
-def list_tools():
-    tools = []
-    if TOOLS_DIR.exists():
-        for d in sorted(TOOLS_DIR.iterdir()):
-            if d.is_dir():
-                meta = d / "meta.json"
-                info = {"id":d.name,"name":d.name,"desc":"","entry":None,"security":False}
-                if meta.exists():
-                    try:
-                        m = json.load(meta.open())
-                        info.update({k:m.get(k,info[k]) for k in info})
-                    except: pass
-                info["dir"] = d
-                tools.append(info)
-    return tools
-
-def run_entry(script_path):
-    if script_path.suffix == ".py": subprocess.run([sys.executable,str(script_path)])
-    else: subprocess.run([str(script_path)])
-
-def consent_prompt(action_desc,target=None):
-    print(C["y"] + "\n=== Persetujuan wajib untuk fitur security ===" + C["reset"])
-    print("Anda akan menjalankan:", action_desc)
-    if target: print("Target:", target)
-    print("Pastikan Anda memiliki izin eksplisit untuk tindakan ini.")
-    ans = input(C["bold"] + "Ketik 'yes' untuk melanjutkan: " + C["reset"]).strip().lower()
-    if ans=="yes":
-        with open(CONSENT_LOG,"a") as f:
-            f.write(f"{datetime.utcnow().isoformat()} | {action_desc} | target={target}\n")
-        return True
-    print("❌ Dibatalkan oleh pengguna.")
-    return False
+    print(C["primary"] + "[BOOT] Initializing EraldForge..." + C["reset"])
+    time.sleep(0.25)
+    print(C["primary"] + "[BOOT] Scanning tools directory..." + C["reset"])
+    time.sleep(0.25)
+    print(C["primary"] + "[BOOT] Ready." + C["reset"])
+    time.sleep(0.2)
 
 def check_for_updates(auto=False):
+    # run git pull
     try:
-        subprocess.run(["git","--version"],check=True,stdout=subprocess.DEVNULL)
-        result = subprocess.run(["git","pull"],cwd=str(BASE))
-        if result.returncode==0 and not auto:
-            print(f"{C['g']}✔ Update selesai! Jalankan ulang EraldForge jika ada perubahan.{C['reset']}")
-        elif not auto:
-            print(f"{C['y']}Tidak ada update baru.{C['reset']}")
+        subprocess.run(["git","--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception as e:
-        if not auto: print(f"{C['r']}git error: {e}{C['reset']}")
-
-def system_info():
-    clear()
-    print("═══════════ ERALD SYSTEM MONITOR ═══════════")
-
-    # CPU Usage
-    cpu_usage = psutil.cpu_percent(interval=1)
-
-    # RAM
-    mem = psutil.virtual_memory()
-    ram_used = round(mem.used / (1024 ** 2))
-    ram_total = round(mem.total / (1024 ** 2))
-
-    # Disk
-    disk = psutil.disk_usage('/')
-    disk_used = round(disk.used / (1024 ** 3), 1)
-    disk_total = round(disk.total / (1024 ** 3), 1)
-
-    # Network
-    net = psutil.net_io_counters()
-    rx = round(net.bytes_recv / 1024, 1)
-    tx = round(net.bytes_sent / 1024, 1)
-
-    # Processes
-    processes = len(psutil.pids())
-
-    # Battery (optional)
+        if not auto:
+            print(f"{C['err']}git not available: {e}{C['reset']}")
+        return
     try:
-        battery = psutil.sensors_battery()
-        if battery:
-            batt = f"{battery.percent}% ({'Charging' if battery.power_plugged else 'Discharging'})"
-        else:
-            batt = "N/A"
-    except Exception:
-        batt = "N/A"
+        p = subprocess.run(["git","pull"], cwd=str(BASE))
+        if p.returncode==0 and not auto:
+            print(f"{C['primary']}{S['ok_update']}{C['reset']}")
+        elif not auto:
+            print(f"{C['warn']}{S['no_update']}{C['reset']}")
+    except Exception as e:
+        if not auto:
+            print(f"{C['err']}git error: {e}{C['reset']}")
 
-    # Temperature
-    try:
-        temps = psutil.sensors_temperatures()
-        temp = list(temps.values())[0][0].current if temps else 37.0
-    except Exception:
-        temp = 37.0
+def list_tools():
+    tools=[]
+    if not TOOLS_DIR.exists(): return tools
+    for d in sorted(TOOLS_DIR.iterdir()):
+        if d.is_dir():
+            meta = d / "meta.json"
+            info = {"id":d.name, "name":d.name, "desc":"", "entry":None, "security":False, "dir":d}
+            if meta.exists():
+                try:
+                    m=json.load(meta.open())
+                    info["name"]=m.get("name", info["name"])
+                    info["desc"]=m.get("desc", info["desc"])
+                    info["entry"]=m.get("entry", info["entry"])
+                    info["security"]=bool(m.get("security", False))
+                except Exception:
+                    pass
+            tools.append(info)
+    return tools
 
-    # Uptime
-    uptime_seconds = time.time() - psutil.boot_time()
-    uptime = time.strftime("%Hh %Mm %Ss", time.gmtime(uptime_seconds))
+def consent_prompt(action_desc, target=None):
+    print(C["warn"] + S["consent_title"] + C["reset"])
+    print(action_desc)
+    if target: print("Target:", target)
+    ans = input(C["bold"] + S["consent_prompt"] + C["reset"]).strip().lower()
+    if ans=="yes":
+        try:
+            with open(CONSENT_LOG,"a") as f:
+                f.write(f"{datetime.utcnow().isoformat()} | {action_desc} | target={target}\n")
+        except Exception:
+            pass
+        return True
+    print(C["err"] + S["consent_denied"] + C["reset"])
+    return False
 
-    # Date & Time
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # OS Info
-    os_version = f"{platform.system()} {platform.release()} ({platform.machine()})"
-    kernel = platform.version()
-
-    # CPU Info
-    cpu_count = psutil.cpu_count(logical=True)
-    cpu_arch = platform.machine()
-
-    # IP
-    try:
-        ip = socket.gethostbyname(socket.gethostname())
-    except:
-        ip = "Tidak terdeteksi"
-
-    print(f"CPU Usage       : {cpu_usage}%")
-    print(f"RAM Usage       : {ram_used}MB / {ram_total}MB")
-    print(f"Storage Usage   : {disk_used}GB / {disk_total}GB")
-    print(f"Network RX/TX   : {rx}KB ↓   {tx}KB ↑")
-    print(f"Processes       : {processes} aktif")
-    print(f"Battery Level   : {batt}")
-    print(f"Device Temp     : {temp}°C")
-    print(f"System Uptime   : {uptime}")
-    print(f"Date & Time     : {now}")
-    print(f"OS Version      : {os_version}")
-    print(f"Kernel Version  : {kernel[:40]}...")
-    print(f"CPU Cores       : {cpu_count} Cores ({cpu_arch})")
-    print(f"IP Address      : {ip}")
-    print("════════════════════════════════════════════")
-    input("Tekan [Enter] untuk kembali ke menu utama.")
-
-def about():
-    print(f"{C['b']}EraldForge {VERSION}{C['reset']}")
-    print("Developer : Gerald (G-R4L)")
-    print("Repo      : https://github.com/G-R4L/EraldForge")
-    print("Purpose   : Termux Multi-Tool Launcher for ethical testing & automation")
-    print()
+def run_entry(p:Path):
+    if not p.exists():
+        print(f"{C['err']}Entry file not found: {p}{C['reset']}")
+        return
+    if p.suffix==".py":
+        subprocess.run([sys.executable, str(p)])
+    else:
+        subprocess.run([str(p)])
 
 def switch_theme():
-    global theme_name,C
-    print("Tema tersedia:")
-    for t in THEMES.keys(): print("-",t)
-    new_t = input("Pilih tema: ").strip().lower()
-    if new_t in THEMES:
-        theme_name=new_t; C=THEMES[new_t]; C["reset"]="\033[0m"; C["bold"]="\033[1m"
-        print(f"Tema diganti ke {new_t}.")
-        time.sleep(1)
-    else: print("Tema tidak dikenal.")
+    global THEME_NAME, C
+    print("Available themes:")
+    for t in THEMES:
+        print("-",t)
+    t = input("Choose theme: ").strip().lower()
+    if t in THEMES:
+        THEME_NAME = t
+        C = THEMES[t]
+        print(f"Theme changed to {t}.")
+    else:
+        print("Unknown theme.")
 
+def switch_language():
+    global LANG, S
+    print("1) Bahasa Indonesia")
+    print("2) English")
+    c = input("Choose [1/2]: ").strip()
+    LANG = "en" if c=="2" else "id"
+    S = STRINGS[LANG]
+    try:
+        LANG_CFG.write_text(LANG)
+    except Exception:
+        pass
+    print("Language saved.")
+
+def about():
+    print(f"EraldForge {VERSION}")
+    print("Developer: Gerald (G-R4L)")
+    print("Repo: https://github.com/G-R4L/EraldForge")
+    print("Purpose: Ethical testing & handy Termux utilities")
+
+# menu display (neat, no emoji)
 def show_menu(tools):
-    now=datetime.now().strftime("%H:%M:%S")
-    print(f"{C['b']}[{now}] {C['c']}EraldForge Main Menu{C['reset']}")
-    print(f"{C['y']}──────────────────────────────────────────────{C['reset']}")
-    for i,t in enumerate(tools,1):
-        sec=f"{C['r']}⚠{C['reset']}" if t['security'] else ""
-        print(f"{C['g']}[{i}] {C['bold']}{t['name']}{C['reset']} {sec}")
-        print(f"    {C['w']}{t['desc']}{C['reset']}")
-        print(f"{C['y']}──────────────────────────────────────────────{C['reset']}")
-    print(f"{C['b']}[U]{C['reset']} Periksa update")
-    print(f"{C['b']}[T]{C['reset']} Ganti tema")
-    print(f"{C['b']}[I]{C['reset']} Info sistem")
-    print(f"{C['b']}[A]{C['reset']} Tentang EraldForge")
-    print(f"{C['r']}[0]{C['reset']} Keluar")
-    print(f"{C['y']}══════════════════════════════════════════════════════════{C['reset']}")
+    now = datetime.now().strftime("%H:%M:%S")
+    print(C["accent"] + "        " + S["tagline"] + C["reset"])
+    print(C["warn"] + "══════════════════════════════════════════════════════════" + C["reset"])
+    print(f"[{now}]  {C['accent']}{S['menu_title']}{C['reset']}")
+    print(C["warn"] + "──────────────────────────────────────────────" + C["reset"])
+    # show up to first 8 tools mapped 1..8
+    for i, t in enumerate(tools[:8], start=1):
+        sec = " ⚠" if t["security"] else ""
+        name = t["name"]
+        desc = t["desc"]
+        # align columns: name padded to 22 chars
+        print(f"[{i}] {name:<22} {sec}  {desc}")
+    print(C["warn"] + "──────────────────────────────────────────────" + C["reset"])
+    print(f"[U] {S['update']}")
+    print(f"[T] {S['theme']}")
+    print(f"[L] {S['lang']}")
+    print(f"[A] {S['about']}")
+    print(f"[0] {S['exit']}")
+    print(C["warn"] + "══════════════════════════════════════════════════════════" + C["reset"])
 
 def main():
+    animate_start = True
     animate_startup()
     check_for_updates(auto=True)
     while True:
-        print_banner()
-        tools=list_tools()
+        clear()
+        tools = list_tools()
         if not tools:
-            print(f"{C['r']}Tidak ada tool di folder /tools.{C['reset']}")
-            input("Tekan Enter...")
+            print(C["err"] + S["no_tools"] + C["reset"])
+            input(S["press_enter"])
             break
         show_menu(tools)
-        ch=input(f"\n{C['bold']}Pilih nomor/huruf: {C['reset']}").strip().lower()
-        if ch in ("0","q","exit"): print(f"{C['y']}Sampai jumpa!{C['reset']}"); break
-        elif ch=="u": check_for_updates(); input("Enter...")
-        elif ch=="i": system_info()
-        elif ch=="a": about(); input("Enter...")
-        elif ch=="t": switch_theme(); continue
-        else:
-            try:
-                idx=int(ch)-1
-                if idx<0 or idx>=len(tools): raise ValueError
-                t=tools[idx]
-                if t["security"]:
-                    target=input("Masukkan target (IP/domain): ").strip() or None
-                    if not consent_prompt(t["desc"],target): continue
-                    os.environ["ERALDFORGE_TARGET"]=target or ""
-                entry_path=t["dir"]/t["entry"]
-                if not entry_path.exists(): print("Entry tidak ditemukan."); continue
-                run_entry(entry_path)
-            except ValueError:
-                print("Input tidak valid.")
-        input(f"\n{C['y']}Tekan Enter untuk kembali ke menu...{C['reset']}")
+        choice = input("\n" + S["prompt"]).strip().lower()
+        if choice in ("0","q","exit"):
+            print("Goodbye.")
+            break
+        if choice == "u":
+            check_for_updates(); input(S["press_enter"]); continue
+        if choice == "t":
+            switch_theme(); input(S["press_enter"]); continue
+        if choice == "l":
+            switch_language(); input(S["press_enter"]); continue
+        if choice == "a":
+            about(); input(S["press_enter"]); continue
+        # numeric tool selection
+        try:
+            idx = int(choice) - 1
+            if idx < 0 or idx >= len(tools[:8]):
+                print(C["err"] + S["invalid"] + C["reset"]); input(S["press_enter"]); continue
+            tool = tools[idx]
+            if tool["security"]:
+                target = input("Enter target (IP/domain) or leave blank: ").strip() or None
+                if not consent_prompt(tool["desc"], target):
+                    input(S["press_enter"]); continue
+                os.environ["ERALDFORGE_TARGET"] = target or ""
+            entry = tool["dir"] / (tool["entry"] or "")
+            if not entry.exists():
+                print(C["err"] + "Entry not found: " + str(entry) + C["reset"])
+                input(S["press_enter"])
+                continue
+            run_entry(entry)
+            input(S["press_enter"])
+        except ValueError:
+            print(C["err"] + S["invalid"] + C["reset"])
+            input(S["press_enter"])
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()

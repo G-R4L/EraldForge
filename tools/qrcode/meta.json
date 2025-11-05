@@ -1,0 +1,8 @@
+{
+  "name": "QR Code Generator",
+  "id": "qrcode",
+  "desc": "Buat QR code dari teks atau URL. Menyimpan PNG dan menampilkan ASCII di terminal.",
+  "entry": "qrcode_gen.py",
+  "lang": "python",
+  "security": false
+}
