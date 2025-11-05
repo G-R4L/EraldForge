@@ -1,55 +1,60 @@
 #!/data/data/com.termux/files/usr/bin/env python3
-import json, sys
+# EraldForge - Todo (upgraded)
+import json, os
 from pathlib import Path
-TFILE = Path.home() / ".eraldforge_todo.json"
+HOME=Path.home()
+FILE=HOME/".eraldforge_todo.json"
 
 def load():
-    if TFILE.exists():
-        return json.load(TFILE.open())
+    try:
+        if FILE.exists(): return json.loads(FILE.read_text())
+    except: pass
     return []
 
 def save(data):
-    json.dump(data, TFILE.open("w"), indent=2)
+    try: FILE.write_text(json.dumps(data,indent=2))
+    except: pass
+
+def show(data):
+    if not data: print("No todos")
+    for i,t in enumerate(data, start=1):
+        done="x" if t.get("done") else " "
+        pr=t.get("priority","-")
+        due=t.get("due","-")
+        print(f"{i}. [{done}] ({pr}) {t.get('task')}  due:{due}")
 
 def main():
+    print("EraldForge Todo")
     while True:
-        data = load()
-        print("\nTodo list:")
-        for i, t in enumerate(data):
-            print(f"{i}. [{'x' if t.get('done') else ' '}] {t.get('task')}")
-        print("a. add, t. toggle, d. delete, q. quit")
-        c = input("Choice: ").strip()
-        if c == "a":
-            task = input("Task: ").strip()
-            if task:
-                data.append({"task": task, "done": False})
+        data=load()
+        show(data)
+        print("a: add, t: toggle, e: edit, d: delete, q: quit")
+        cmd=input("Choice: ").strip().lower()
+        if cmd=="a":
+            task=input("Task: ").strip()
+            pr=input("Priority (low/med/high): ").strip() or "med"
+            due=input("Due (YYYY-MM-DD) or blank: ").strip()
+            data.append({"task":task,"priority":pr,"due":due,"done":False})
+            save(data)
+            continue
+        if cmd=="t":
+            idx=int(input("Index: ").strip())-1
+            if 0<=idx<len(data): data[idx]["done"]=not data[idx].get("done",False); save(data)
+            continue
+        if cmd=="e":
+            idx=int(input("Index: ").strip())-1
+            if 0<=idx<len(data):
+                data[idx]["task"]=input("Task: ").strip() or data[idx]["task"]
+                data[idx]["priority"]=input("Priority: ").strip() or data[idx]["priority"]
+                data[idx]["due"]=input("Due: ").strip() or data[idx]["due"]
                 save(data)
-        elif c == "t":
-            try:
-                idx = int(input("Index: ").strip())
-            except Exception:
-                print("Invalid index")
-                continue
-            if idx < 0 or idx >= len(data):
-                print("Index out of range")
-                continue
-            data[idx]['done'] = not data[idx].get('done', False)
-            save(data)
-        elif c == "d":
-            try:
-                idx = int(input("Index: ").strip())
-            except Exception:
-                print("Invalid index")
-                continue
-            if idx < 0 or idx >= len(data):
-                print("Index out of range")
-                continue
-            data.pop(idx)
-            save(data)
-        elif c == "q":
-            break
-        else:
-            print("Unknown")
+            continue
+        if cmd=="d":
+            idx=int(input("Index: ").strip())-1
+            if 0<=idx<len(data): data.pop(idx); save(data)
+            continue
+        if cmd in ("q","quit","exit"): break
+        print("Unknown")
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()

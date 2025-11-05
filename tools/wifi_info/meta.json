@@ -1,7 +1,7 @@
 {
   "name": "WiFi Info (readonly)",
   "id": "wifi_info",
-  "desc": "Tampilkan hasil pemindaian Wi-Fi (non-intrusive) menggunakan termux-wifi-scaninfo",
+  "desc": "Tampilkan hasil pemindaian Wi-Fi (termux-wifi-scaninfo). Read-only.",
   "entry": "wifi_info.py",
   "lang": "python",
   "security": false

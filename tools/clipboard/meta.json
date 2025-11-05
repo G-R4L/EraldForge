@@ -1,7 +1,7 @@
 {
   "name": "Clipboard Manager",
   "id": "clipboard",
-  "desc": "Simpan & panggil history clipboard via termux-clipboard-*",
+  "desc": "Clipboard history & quick paste (termux-clipboard-*). Search & copy.",
   "entry": "clipboard.py",
   "lang": "python",
   "security": false

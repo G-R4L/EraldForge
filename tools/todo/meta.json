@@ -1,7 +1,7 @@
 {
   "name": "Todo CLI",
   "id": "todo",
-  "desc": "Simple todo list (local file).",
+  "desc": "Todo list dengan priority & due-date (local JSON).",
   "entry": "todo.py",
   "lang": "python",
   "security": false
