@@ -1,0 +1,8 @@
+{
+  "name": "Todo CLI",
+  "id": "todo",
+  "desc": "Simple todo list (local file).",
+  "entry": "todo.py",
+  "lang": "python",
+  "security": false
+}

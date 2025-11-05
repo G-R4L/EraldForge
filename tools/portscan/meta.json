@@ -1,0 +1,8 @@
+{
+  "name": "Port Scanner (wrapper)",
+  "id": "portscan",
+  "desc": "Wrapper ke nmap (harus install nmap). Hanya menjalankan scan dasar (non-exploit). Requires consent.",
+  "entry": "portscan.py",
+  "lang": "python",
+  "security": true
+}

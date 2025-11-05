@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+# local runtime files
+*.log
+.eraldforge_clipboard.json
+.eraldforge_todo.json
+.eraldforge_consent.log
+# OS
+.DS_Store
+thumbs.db

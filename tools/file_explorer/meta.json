@@ -1,0 +1,8 @@
+{
+  "name": "File Explorer",
+  "id": "file_explorer",
+  "desc": "Navigate filesystem, zip/unzip, show sizes. Non-destructive by default.",
+  "entry": "explorer.py",
+  "lang": "python",
+  "security": false
+}
