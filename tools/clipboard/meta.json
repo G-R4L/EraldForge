@@ -1,7 +1,7 @@
 {
   "name": "Clipboard Manager",
   "id": "clipboard",
-  "desc": "Clipboard history & quick paste (termux-clipboard-*). Search & copy.",
+  "desc": "Mengelola riwayat clipboard. Fitur: Simpan, Tampil, Tempel, dan Cari.",
   "entry": "clipboard.py",
   "lang": "python",
   "security": false
