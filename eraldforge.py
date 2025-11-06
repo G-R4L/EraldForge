@@ -40,12 +40,12 @@ C = THEMES[CURRENT_THEME]
 # ---------------- Banner ASCII ----------------
 # Banner baru: EraldForge (Gaya Standard dari request)
 BANNER_LINES = [
-    " _____              _      _  _____                        ",
+    " _____               _      _  _____                        ",
     "| ____| _ __  __ _ | |  __| ||  ___|___   _ __  __ _   ___ ",
     "|  _|  | '__|/ _` || | / _` || |_  / _ \\ | '__|/ _` | / _ \\",
     "| |___ | |  | (_| || || (_| ||  _|| (_) || |  | (_| ||  __/",
     "|_____||_|   \__,_||_| \__,_||_|   \___/ |_|   \__, | \\___|",
-    "                                               |___/       ",
+    "                                                 |___/       ",
 ]
 
 def colored_banner():
@@ -62,7 +62,7 @@ def colored_banner():
     
     for i, line in enumerate(BANNER_LINES):
         if i == 5: # Baris paling bawah, hanya pewarnaan Biru di kolom terakhir
-            # Hanya perlu mewarnai ' |___/       ' (kolom 51-58)
+            # Hanya perlu mewarnai ' |___/        ' (kolom 51-58)
             part1 = line[:50]
             part2 = line[50:]
             
@@ -479,7 +479,9 @@ def show_menu():
     print(accent_line_full)
     
     # Cetak tagline (Tepat di tengah dengan padding)
-    print(padding + C["title"] + S["tag"] + C["reset"])
+    # >>> PERUBAHAN DI SINI: Mengubah warna tagline dari C["title"] menjadi HIJAU (\033[32m)
+    GREEN_COLOR = "\033[32m"
+    print(padding + GREEN_COLOR + S["tag"] + C["reset"])
     
     # Cetak garis kedua (Full Width)
     print(accent_line_full)
