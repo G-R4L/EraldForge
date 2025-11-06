@@ -12,6 +12,7 @@ Fitur & perbaikan:
 - Fallback builtin tools bila folder tools/<id> tidak ada
 - Semua tool Python dipanggil dengan ERALDFORGE_LANG set
 - Consent logging untuk fitur sensitif
+- PERBAIKAN: Port Scanner Fallback kini memiliki prompt input yang bersih.
 """
 import os
 import sys
@@ -70,12 +71,11 @@ def colored_banner():
             out.append(ERALD_COLOR + ln + C["reset"])
         elif i <= 6:
             out.append(FORGE_COLOR + ln + C["reset"])
-        else: # Baris paling bawah, hanya pewarnaan Biru di kolom terakhir
-            # Hanya perlu mewarnai ' /\\____/ ' dan ' \_/__/ ' di bagian Forge
+        else:
+            # Mewarnai bagian "Forge" di baris paling bawah
             part1 = ln[:50]
             part2 = ln[50:]
             out.append(part1 + FORGE_COLOR + part2 + C["reset"])
-
     return "\n".join(out)
 
 # ---------------- menu & defaults ----------------
@@ -169,11 +169,20 @@ def run_tool_dir(tool_dir):
         subprocess.run([str(p)])
     return True
 
+# Fungsi helper untuk memastikan input bersih
+def clean_input(prompt):
+    # Membersihkan seluruh baris terminal (penting setelah sys.stdout.write)
+    # Ini memastikan prompt baru tidak terpengaruh oleh output sebelumnya
+    sys.stdout.write("\r" + " " * term_width() + "\r")
+    sys.stdout.flush()
+    return input(prompt)
+
+
 # ---------------- built-in fallback implementations ----------------
 def fallback_calculator():
     clear()
     print("== Kalkulator fallback ==")
-    expr = input("Masukkan ekspresi (mis. 2+2): ").strip()
+    expr = clean_input("Masukkan ekspresi (mis. 2+2): ").strip()
     if not expr:
         pause(); return
     import math
@@ -203,6 +212,7 @@ def fallback_file_explorer():
     print("== File Explorer fallback ==")
     cwd = Path.home()
     while True:
+        clear()
         print("\nCurrent:", cwd)
         try:
             items = sorted(cwd.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
@@ -212,7 +222,7 @@ def fallback_file_explorer():
             name = it.name + ("/" if it.is_dir() else "")
             print(f"{i}. {name}")
         print("u. up, q. quit")
-        ch = input("Choice: ").strip().lower()
+        ch = clean_input("Choice: ").strip().lower()
         if ch == "q":
             break
         if ch == "u":
@@ -229,22 +239,27 @@ def fallback_file_explorer():
                     print(it.open("r", errors="replace").read(4096))
                 except Exception as e:
                     print("Tidak bisa buka file:", e)
+                pause() # Tambahkan pause setelah melihat file
         except Exception:
             print("Pilihan tidak valid.")
-        pause()
 
 # ---------------- PERBAIKAN FUNGSI PORT SCANNER FALLBACK ----------------
 def fallback_portscanner():
     """
     Melakukan TCP Connect Scan dasar menggunakan socket.
     Ditambahkan penanganan DNS yang lebih baik (resolve terlebih dahulu).
+    Memakai clean_input untuk prompt yang bersih.
     """
     clear()
     print("== Port Scanner fallback (TCP connect scan) ==")
-    tgt = input("Target (host/IP): ").strip()
+    
+    # Menggunakan clean_input
+    tgt = clean_input("Target (host/IP): ").strip()
     if not tgt:
         pause(); return
-    rng = input("Range (e.g. 20-1024) [1-1024]: ").strip() or "1-1024"
+    
+    # Menggunakan clean_input
+    rng = clean_input("Range (e.g. 20-1024) [1-1024]: ").strip() or "1-1024"
 
     # Resolusi host
     try:
@@ -265,13 +280,15 @@ def fallback_portscanner():
 
     print(f"Scanning {ip_addr} ports {a}-{b} ... (Timeout: 0.35s per port)")
     open_ports = []
+    total_ports = b - a + 1
 
     # Loop pemindaian port
-    for p in range(a, b + 1):
+    for i, p in enumerate(range(a, b + 1)):
         try:
-            # Tampilkan progress setiap 100 port
-            if p % 100 == 0:
-                sys.stdout.write(f"\rProgress: {p}/{b} ports checked... ")
+            # Tampilkan progress setiap 100 port atau 1%
+            if i % 100 == 0 or (total_ports > 100 and (i * 100) // total_ports != ((i-1) * 100) // total_ports):
+                progress = (i * 100) // total_ports
+                sys.stdout.write(f"\rProgress: {progress}% ({i}/{total_ports} ports checked)... ")
                 sys.stdout.flush()
 
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -279,7 +296,9 @@ def fallback_portscanner():
             # connect_ex mengembalikan 0 jika koneksi berhasil
             if s.connect_ex((ip_addr, p)) == 0:
                 open_ports.append(p)
-                print(f"\rPort {p} terbuka!")
+                # Tampilkan port yang ditemukan di baris baru
+                sys.stdout.write(f"\r{C['accent']}Port {p} terbuka!{C['reset']}")
+                sys.stdout.write("\n") # Lanjut ke baris baru setelah menemukan port
             s.close()
         except KeyboardInterrupt:
             print("\rDibatalkan oleh pengguna.")
@@ -289,11 +308,14 @@ def fallback_portscanner():
             pass
 
     # Cetak hasil
-    sys.stdout.write("\r" + " " * 50 + "\r") # Clear progress line
+    # Bersihkan progress bar sebelum mencetak hasil akhir
+    sys.stdout.write("\r" + " " * term_width() + "\r")
+    sys.stdout.flush()
+
     if open_ports:
-        print("\n[✔] Open ports:", ", ".join(map(str, open_ports)))
+        print(f"\n[{C['accent']}✔{C['reset']}] Open ports: {C['title']}", ", ".join(map(str, open_ports)), C['reset'])
     else:
-        print("\n[i] Tidak ditemukan port terbuka di rentang itu (atau blocked/timeout).")
+        print(f"\n[{C['num']}i{C['reset']}] Tidak ditemukan port terbuka di rentang itu (atau blocked/timeout).")
     pause()
 # ---------------- AKHIR PERBAIKAN ----------------
 
@@ -316,21 +338,21 @@ def fallback_todo():
         for i, it in enumerate(items):
             print(f"{i}. [{'x' if it.get('done') else ' '}] {it.get('task')}")
         print("a add, t toggle, d del, q quit")
-        c = input("Pilihan: ").strip().lower()
+        c = clean_input("Pilihan: ").strip().lower()
         if c == "q":
             break
         if c == "a":
-            t = input("Task: ").strip()
+            t = clean_input("Task: ").strip()
             if t:
                 items.append({"task": t, "done": False}); save(items)
         elif c == "t":
             try:
-                ix = int(input("Index: ").strip()); items[ix]['done'] = not items[ix].get('done', False); save(items)
+                ix = int(clean_input("Index: ").strip()); items[ix]['done'] = not items[ix].get('done', False); save(items)
             except Exception:
                 print("Invalid index")
         elif c == "d":
             try:
-                ix = int(input("Index: ").strip()); items.pop(ix); save(items)
+                ix = int(clean_input("Index: ").strip()); items.pop(ix); save(items)
             except Exception:
                 print("Invalid index")
         pause()
@@ -349,7 +371,7 @@ def builtin_password_generator():
     clear()
     print("=== Password Generator ===")
     try:
-        n = int(input("Length [16]: ").strip() or "16")
+        n = int(clean_input("Length [16]: ").strip() or "16")
     except Exception:
         n = 16
     import secrets, string
@@ -366,7 +388,7 @@ def builtin_password_generator():
 def builtin_qrcode():
     clear()
     print("=== QR Code Generator ===")
-    txt = input("Text/URL: ").strip()
+    txt = clean_input("Text/URL: ").strip()
     if not txt:
         pause(); return
     try:
@@ -462,34 +484,30 @@ def show_menu():
     global C
     clear()
 
-    # PERBAIKAN: Hitung padding untuk menengahkan tagline
     width = term_width()
     tag = S["tag"]
-
-    # 1. Buat garis aksen sepanjang lebar terminal
     accent_line_full = C["accent"] + "═" * width + C["reset"]
 
     # Banner
     print(colored_banner())
 
-    # 2. Hitung padding untuk menengahkan tagline
+    # Hitung padding untuk menengahkan tagline
     padding = " " * ((width - len(tag)) // 2)
+    GREEN_COLOR = "\033[32m"
 
     # Cetak garis pertama (Full Width)
     print(accent_line_full)
 
-    # Cetak tagline (Tepat di tengah dengan padding)
-    GREEN_COLOR = "\033[32m"
+    # Cetak tagline
     print(padding + GREEN_COLOR + S["tag"] + C["reset"])
 
     # Cetak garis kedua (Full Width)
     print(accent_line_full)
 
     now = datetime.now().strftime("%H:%M:%S")
-    # Menggunakan C['time'] untuk warna jam
     print(f"{C['time']}🕒 [{now}]{C['reset']} {C['title']}{S['menu_title']}{C['reset']}")
 
-    # PERUBAHAN: Garis pemisah diperpanjang hingga full width
+    # Garis pemisah
     print(C["accent"] + "—" * width + C["reset"])
 
     # Lebar terminal & kolom
@@ -511,7 +529,6 @@ def show_menu():
         desc = meta_desc or default_desc
         desc = shorten(desc, desc_width)
 
-        # Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Tools 1-8
         print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
     # Tampilkan menu tambahan (U, T, S, A, 0)
@@ -529,7 +546,9 @@ def show_menu():
 
     # Cetak garis terakhir (Full Width)
     print(accent_line_full)
-    print(S["prompt"], end="")
+    sys.stdout.write("\n")
+    sys.stdout.write(S["prompt"])
+    sys.stdout.flush()
 
 
 def theme_menu():
@@ -542,7 +561,7 @@ def theme_menu():
         theme_color = THEMES[names[i-1]]['title']
         print(f"[{i}] {theme_color}{n}{C['reset']}")
     print("[B] Kembali")
-    choice = input("Pilih: ").strip().lower()
+    choice = clean_input("Pilih: ").strip().lower()
     if choice == "b":
         return
     try:
@@ -574,7 +593,6 @@ def handle_choice(ch):
         print("Bye."); sys.exit(0)
     if ch == "u":
         try:
-            # Cek git sebelum pull, hindari error jika git tidak terpasang
             subprocess.run(["git", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
             print("Menjalankan git pull...")
             p = subprocess.run(["git", "pull"], cwd=str(BASE))
@@ -615,16 +633,15 @@ def handle_choice(ch):
                 print(S["consent_title"])
                 print("Fitur ini dapat digunakan untuk tujuan etis (misalnya pada jaringan Anda sendiri).")
                 print(desc or MENU_LIST[n-1][1])
-                ok = input(S["consent_prompt"]).strip().lower() == "yes"
+                ok = clean_input(S["consent_prompt"]).strip().lower() == "yes"
                 if not ok:
                     print(S["consent_denied"]); pause(); return
-                tgt = input("Target (IP/domain) atau kosong: ").strip() or None
+                tgt = clean_input("Target (IP/domain) atau kosong: ").strip() or None
                 save_consent(desc or tid, tgt)
                 if tgt:
                     os.environ["ERALDFORGE_TARGET"] = tgt
             # try to run external tool folder entry
             if td.exists() and td.is_dir():
-                # Pastikan menghapus variabel TARGET setelah selesai
                 try:
                     ran = run_tool_dir(td)
                 finally:
@@ -642,7 +659,7 @@ def handle_choice(ch):
             if tid == "file_explorer":
                 fallback_file_explorer(); return
             if tid == "port_scanner":
-                fallback_portscanner(); return # Memanggil fungsi yang sudah diperbaiki
+                fallback_portscanner(); return
             if tid == "todo":
                 fallback_todo(); return
             if tid == "wifi_info":
@@ -675,6 +692,7 @@ def startup_anim():
         sys.stdout.flush()
         time.sleep(0.02)
     sys.stdout.write("\n")
+    sys.stdout.flush() # Pastikan buffer dikosongkan
     time.sleep(0.12)
 
 # ---------------- main ----------------
@@ -683,8 +701,12 @@ def main():
     startup_anim()
     while True:
         show_menu()
-        # Ambil input setelah prompt dicetak di show_menu
-        ch = input()
+        # Mengambil input setelah show_menu mencetak prompt dengan sys.stdout.write
+        try:
+            ch = input()
+        except EOFError:
+            # Handle Ctrl+D
+            sys.exit(0)
         handle_choice(ch)
 
 if __name__ == "__main__":
