@@ -38,14 +38,14 @@ CURRENT_THEME = "default"
 C = THEMES[CURRENT_THEME]
 
 # ---------------- Banner ASCII ----------------
-# Banner baru: EraldForge (Gaya Standard)
+# Banner baru: EraldForge (Gaya Standard dari request)
 BANNER_LINES = [
-    " _____             _     _ _____                    ",
-    "| ____|_ __ __ _| | __| |  ___|__  _ __ __ _  ___ ",
-    "|  _| | '__/ _` | |/ _` | |_ / _ \| '__/ _` |/ _ \\",
-    "| |___| | | (_| | | (_| |  _| (_) | | | (_| |  __/",
-    "|_____|_|  \__,_|_|\__,_|_|  \___/|_|  \__, |\\___|",
-    "                                   |___/      ",
+    " _____              _      _  _____                        ",
+    "| ____| _ __  __ _ | |  __| ||  ___|___   _ __  __ _   ___ ",
+    "|  _|  | '__|/ _` || | / _` || |_  / _ \\ | '__|/ _` | / _ \\",
+    "| |___ | |  | (_| || || (_| ||  _|| (_) || |  | (_| ||  __/",
+    "|_____||_|   \__,_||_| \__,_||_|   \___/ |_|   \__, | \\___|",
+    "                                               |___/       ",
 ]
 
 def colored_banner():
@@ -56,21 +56,23 @@ def colored_banner():
     ERALD_COLOR = "\033[31m"
     FORGE_COLOR = "\033[34m"
     
-    # Pewarnaan menggunakan Merah (31m) untuk 'Erald' (kiri) dan Biru (34m) untuk 'Forge' (kanan)
-    # Merah (Erald) - mulai di kolom 0, panjang 27
-    # Biru (Forge) - mulai di kolom 28, panjang 28
+    # Pewarnaan:
+    # Erald (Merah) - Bagian Kiri, 0-29
+    # Forge (Biru) - Bagian Kanan, 30-58
     
     for i, line in enumerate(BANNER_LINES):
-        if i == 5: # Baris kosong di akhir
-             out.append(line)
-             continue
+        if i == 5: # Baris paling bawah, hanya pewarnaan Biru di kolom terakhir
+            # Hanya perlu mewarnai ' |___/       ' (kolom 51-58)
+            part1 = line[:50]
+            part2 = line[50:]
+            
+            # Baris 5: Merah tidak ada, Biru di kanan
+            out.append(part1 + FORGE_COLOR + part2 + C["reset"])
+            continue
         
-        # Pewarnaan: 
-        # Bagian 1 (Erald): karakter 0-27
-        # Bagian 2 (Forge): karakter 28-56
-        
-        part1 = line[:28]
-        part2 = line[28:]
+        # Baris 0-4: Merah (kiri) dan Biru (kanan)
+        part1 = line[:30] # Bagian Erald (index 0 hingga 29)
+        part2 = line[30:] # Bagian Forge (index 30 hingga akhir)
         
         # Pewarnaan Merah (Erald)
         colored_part1 = ERALD_COLOR + part1 + C["reset"]
@@ -468,24 +470,26 @@ def show_menu():
     tag = S["tag"]
     
     # 1. Buat garis aksen sepanjang lebar terminal
-    accent_line = C["accent"] + "═" * width + C["reset"]
+    accent_line_full = C["accent"] + "═" * width + C["reset"]
     
     # 2. Hitung padding untuk menengahkan tagline
     padding = " " * ((width - len(tag)) // 2)
 
     # Cetak garis pertama (Full Width)
-    print(accent_line)
+    print(accent_line_full)
     
     # Cetak tagline (Tepat di tengah dengan padding)
     print(padding + C["title"] + S["tag"] + C["reset"])
     
     # Cetak garis kedua (Full Width)
-    print(accent_line)
+    print(accent_line_full)
     
     now = datetime.now().strftime("%H:%M:%S")
     # Menggunakan C['time'] untuk warna jam
     print(f"{C['time']}🕒 [{now}]{C['reset']} {C['title']}{S['menu_title']}{C['reset']}")
-    print(C["accent"] + "──────────────────────────────────────────────" + C["reset"]) # Garis pemisah sebelum menu utama
+    
+    # PERUBAHAN: Garis pemisah diperpanjang hingga full width
+    print(C["accent"] + "—" * width + C["reset"]) 
 
     # Lebar terminal & kolom
     num_col = 4 # "[1] "
@@ -514,7 +518,8 @@ def show_menu():
         print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
     # Tampilkan menu tambahan (U, T, S, A, 0)
-    print(C["accent"] + "──────────────────────────────────────────────" + C["reset"])
+    # PERUBAHAN: Garis pemisah diperpanjang hingga full width
+    print(C["accent"] + "—" * width + C["reset"])
     extras = [
         ("U", "Update GitHub", "tarik update dari repo"),
         ("T", "Tema", "ganti tema"),
@@ -525,10 +530,10 @@ def show_menu():
     
     # Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Menu Tambahan
     for code, title, desc in extras:
-        print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
+        print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{shorten(desc, desc_col)}{C['reset']}")
 
     # Cetak garis terakhir (Full Width)
-    print(accent_line)
+    print(accent_line_full)
     print(S["prompt"], end="")
 
 def theme_menu():
