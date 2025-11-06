@@ -22,13 +22,16 @@ CURRENT_SORT = "level" # 'level', 'ssid', 'freq'
 
 # ---------------- Colors & Style ----------------
 def get_colors(theme):
+    """Mendapatkan set warna berdasarkan tema yang dipilih."""
     if theme == "hacker":
         return {
+            # Hijau (G) untuk tema Hacker
             "G": "\033[32m", "W": "\033[0m", "Y": "\033[33m", "C_NEON": "\033[93m",
             "C_BOX": "\033[96m", "R": "\033[91m", "BOLD": "\033[1m", "DIM": "\033[2m"
         }
     else: # clean/default
         return {
+            # Biru (G) untuk tema Clean
             "G": "\033[34m", "W": "\033[0m", "Y": "\033[33m", "C_NEON": "\033[93m",
             "C_BOX": "\033[96m", "R": "\033[91m", "BOLD": "\033[1m", "DIM": "\033[2m"
         }
@@ -40,6 +43,7 @@ def theme_prompt():
     t = input("Tema [hacker/clean] (default clean): ").strip().lower()
     return t if t in ("hacker", "clean") else "clean"
 
+# Inisialisasi variabel global warna
 THEME = theme_prompt()
 COLORS = get_colors(THEME)
 G, W, Y, C_NEON, C_BOX, R, BOLD, DIM = (
@@ -50,11 +54,11 @@ G, W, Y, C_NEON, C_BOX, R, BOLD, DIM = (
 # Banner ASCII baru dengan warna kuning (C_NEON)
 BANNER_NEW = [
     C_NEON + "············································" + W,
-    C_NEON + ":"+BOLD+"__        ___  __ _   ___        __       :"+W,
-    C_NEON + ":"+BOLD+"\\ \\      / (_)/ _(_) |_ _|_ __  / _| ___  :"+W,
-    C_NEON + ":"+BOLD+" \\ \\ /\\ / /| | |_| |  | || '_ \\| |_ / _ \\ :"+W,
-    C_NEON + ":"+BOLD+"  \\ V  V / | |  _| |  | || | | |  _| (_) |:"+W,
-    C_NEON + ":"+BOLD+"   \\_/\\_/  |_|_| |_| |___|_| |_|_|  \\___/ :"+W,
+    C_NEON + ":"+BOLD+C_NEON+"__      ___  __ _  ___         __        :"+W,
+    C_NEON + ":"+BOLD+C_NEON+"\\ \     / (_)/ _(_) |_ _|_ __  / _| ___  :"+W,
+    C_NEON + ":"+BOLD+C_NEON+" \\ \ /\ / /| | |_| |  | || '_ \\| |_ / _ \\ :"+W,
+    C_NEON + ":"+BOLD+C_NEON+"  \\ V  V / | |  _| |  | || | | |  _| (_) |:"+W,
+    C_NEON + ":"+BOLD+C_NEON+"   \\_/\\_/  |_|_| |_| |___|_| |_|_|  \\___/ :"+W,
     C_NEON + "············································" + W,
 ]
 
@@ -124,6 +128,7 @@ def run_scan():
 
 def sort_data(data):
     """Mengurutkan data berdasarkan status global CURRENT_SORT."""
+    global CURRENT_SORT
     if CURRENT_SORT == "level":
         # Urutkan berdasarkan level sinyal (Descending: terkuat pertama)
         return sorted(data, key=lambda x: int(x.get('level', -100)), reverse=True)
@@ -171,9 +176,9 @@ def show_results(data):
         output_line = (
             f"{C_BOX}│ {str(i).ljust(2)}{W} "
             f"│ {G}{ssid_display}{W} "
-            f"│ {color}{signal_bar}{W} {level:>4} "
+            f"│ {color}{signal_bar}{W} {str(level):>4} "
             f"│ {band_display} "
-            f"│ {freq:<6} "
+            f"│ {str(freq):<6} "
             f"│ {DIM}{vendor_display}{W} │"
         )
         print(output_line)
@@ -250,7 +255,11 @@ def handle_detail_view(data):
 
 # ---------------- Main Interaction Loop ----------------
 def main():
-    global THEME
+    # PERBAIKAN SYNTAX ERROR: 
+    # Deklarasi global harus diletakkan di awal fungsi jika variabel global 
+    # di-reassign (diberi nilai baru) di dalamnya, seperti saat ganti tema.
+    global THEME, COLORS, G, W, Y, C_NEON, C_BOX, R, BOLD, DIM
+    
     print_banner()
     
     while True:
@@ -273,8 +282,8 @@ def main():
             
             # Menu Pilihan Baru dan Canggih
             print(f"\n{C_BOX}{BOLD}===== MENU AKSI =====" + W)
-            print(f" {C_BOX}1.{W} {C_BOX}r{W}: Refresh Scan  | {C_BOX}2.{W} {Y}s{W}: Sort List    | {C_BOX}3.{W} {G}d{W}: View Detail")
-            print(f" {C_BOX}4.{W} {C_BOX}t{W}: Change Theme  | {C_BOX}5.{W} {C_NEON}q{W}: Quit")
+            print(f" {C_BOX}1.{W} {C_BOX}r{W}: Refresh Scan  | {C_BOX}2.{W} {Y}s{W}: Sort List     | {C_BOX}3.{W} {G}d{W}: View Detail")
+            print(f" {C_BOX}4.{W} {C_BOX}t{W}: Change Theme  | {C_BOX}5.{W} {C_NEON}q{W}: Quit")
             print(C_BOX + "════════════════════════════════════════════" + W)
             
             cmd = input(f"{C_BOX}▶ Pilihan Anda: {W}").strip().lower()
@@ -298,13 +307,12 @@ def main():
             
         elif cmd == "t":
             # Change Theme
-            global COLORS, G, W, Y, C_NEON, C_BOX, R, BOLD, DIM
-            
             print_banner()
             new_theme = input(f"{C_BOX}Ganti Tema [hacker/clean]: {W}").strip().lower()
             if new_theme in ("hacker", "clean"):
                 THEME = new_theme
                 COLORS = get_colors(THEME)
+                # Re-assign semua variabel global warna
                 G, W, Y, C_NEON, C_BOX, R, BOLD, DIM = (
                     COLORS['G'], COLORS['W'], COLORS['Y'], COLORS['C_NEON'], 
                     COLORS['C_BOX'], COLORS['R'], COLORS['BOLD'], COLORS['DIM']
