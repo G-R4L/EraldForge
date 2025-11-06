@@ -13,8 +13,8 @@ HIST_FILE = os.path.join(HOME, ".eraldforge_calc_history")
 # Menggunakan warna terang untuk tampilan yang lebih modern & high-tech
 R = "\033[91m" # Merah Terang (Error)
 G = "\033[92m" # Hijau Terang (Prompt)
-C_BANNER_DARK = "\033[96m" # Cyan Terang (Bagian gelap banner)
-C_BANNER_LIGHT = "\033[93m" # Kuning Terang (Bagian terang banner)
+C_BANNER_DARK = "\033[96m" # Cyan Terang (Garis tepi banner)
+C_BANNER_LIGHT = "\033[93m" # Kuning Terang/Neon (Teks "CALCULATOR" di banner)
 C_RESULT = "\033[97m" # Putih Terang (Hasil)
 W = "\033[0m"
 BOLD = "\033[1m"
@@ -31,10 +31,10 @@ BANNER_LINES = [
 ]
 
 def print_banner():
-    """Mencetak banner dengan pewarnaan dua tone (Cyan Terang dan Kuning Terang)."""
+    """Mencetak banner dengan pewarnaan dua tone (Cyan Terang dan Kuning Neon)."""
     out = []
     
-    # Pewarnaan Kustom (Mengganti C_BANNER_DARK dan C_BANNER_LIGHT sesuai baris)
+    # Pewarnaan Kustom
     for line in BANNER_LINES:
         if line.strip().startswith("·"): # Garis tepi
             out.append(C_BANNER_DARK + line + W)
@@ -42,9 +42,9 @@ def print_banner():
             # Pewarnaan untuk huruf dan simbol
             # Karakter ':', '/', '|'
             colored_line = (
-                C_BANNER_DARK + line[0] + line[1] + line[2] + W + # Sisi Kiri
-                C_BANNER_LIGHT + line[3:30] + W + # Bagian terang (CALC)
-                C_BANNER_DARK + line[30:] + W # Sisi Kanan
+                C_BANNER_DARK + line[0] + line[1] + line[2] + W + # Sisi Kiri (Tanda :)
+                C_BANNER_LIGHT + line[3:30] + W + # Bagian Kuning Neon (Teks CALCULATOR)
+                C_BANNER_DARK + line[30:] + W # Sisi Kanan (Tanda :)
             )
             out.append(colored_line)
     
@@ -52,13 +52,13 @@ def print_banner():
 
 # --- Safe Math Environment ---
 SAFE_FUNCS = {
-    'sqrt': math.sqrt, 'sin': math.sin, 'cos': math.cos, 'tan': math.tan,
+    'akar': math.sqrt, 'sin': math.sin, 'cos': math.cos, 'tan': math.tan,
     'log': math.log, 'log10': math.log10, 'exp': math.exp,
-    'pow': pow, 'abs': abs, 'round': round, 'floor': math.floor, 'ceil': math.ceil,
-    'pi': math.pi, 'e': math.e, 'Fraction': Fraction,
+    'pangkat': pow, 'abs': abs, 'bulatkan': round, 'bulatkan_bawah': math.floor, 'bulatkan_atas': math.ceil,
+    'pi': math.pi, 'e': math.e, 'Pecahan': Fraction,
     # Fungsi tambahan: Menghitung umur/hari
-    'age': lambda y: datetime.now().year - y,
-    'days_since': lambda y,m,d: (datetime.now() - datetime(y,m,d)).days
+    'umur': lambda y: datetime.now().year - y,
+    'hari_sejak': lambda y,m,d: (datetime.now() - datetime(y,m,d)).days
 }
 
 ALLOWED = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Num, ast.Constant,
@@ -66,11 +66,11 @@ ALLOWED = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Num, ast.Constant,
            ast.USub, ast.UAdd, ast.Call, ast.Load, ast.Name, ast.Tuple, ast.List,
            ast.BitXor, ast.BitAnd, ast.BitOr, ast.LShift, ast.RShift)
 
-# --- AST Node Visitor for Safe Evaluation ---
+# --- AST Node Visitor for Safe Evaluation (Tidak diubah) ---
 class SafeEval(ast.NodeVisitor):
     def visit(self,node):
         if type(node) not in ALLOWED:
-            raise ValueError("Disallowed expression")
+            raise ValueError("Ekspresi tidak diizinkan")
         return super().visit(node)
     def visit_Expression(self,node): return self.visit(node.body)
     def visit_BinOp(self,node):
@@ -87,31 +87,31 @@ class SafeEval(ast.NodeVisitor):
         if isinstance(op,ast.BitOr): return l|r
         if isinstance(op,ast.LShift): return l<<r
         if isinstance(op,ast.RShift): return l>>r
-        raise ValueError("Unsupported op")
+        raise ValueError("Operator tidak didukung")
     def visit_UnaryOp(self,node):
         v=self.visit(node.operand)
         if isinstance(node.op,ast.UAdd): return +v
         if isinstance(node.op,ast.USub): return -v
-        raise ValueError("Unary op disallowed")
+        raise ValueError("Operator Unary tidak diizinkan")
     def visit_Num(self,node): return node.n
     def visit_Constant(self,node):
         if isinstance(node.value,(int,float)): return node.value
-        raise ValueError("Only numeric constants")
+        raise ValueError("Hanya konstanta numerik")
     def visit_Call(self,node):
-        if not isinstance(node.func,ast.Name): raise ValueError("Only simple function calls")
+        if not isinstance(node.func,ast.Name): raise ValueError("Hanya pemanggilan fungsi sederhana")
         fname=node.func.id
-        if fname not in SAFE_FUNCS: raise ValueError(f"Function '{fname}' not allowed")
+        if fname not in SAFE_FUNCS: raise ValueError(f"Fungsi '{fname}' tidak diizinkan")
         args=[self.visit(a) for a in node.args]
         return SAFE_FUNCS[fname](*args)
     def visit_Name(self,node):
         if node.id in SAFE_FUNCS: return SAFE_FUNCS[node.id]
-        raise ValueError(f"Name '{node.id}' not allowed")
+        raise ValueError(f"Nama '{node.id}' tidak diizinkan")
 
 def safe_eval(expr):
     node=ast.parse(expr,mode='eval')
     return SafeEval().visit(node)
 
-# --- History and Utility Functions ---
+# --- History and Utility Functions (diterjemahkan) ---
 def history_load():
     try:
         if os.path.exists(HIST_FILE):
@@ -129,22 +129,21 @@ def history_save(hist):
 def conv_cmd(parts):
     """Konversi basis: conv <num> <base_to>"""
     if len(parts) != 3:
-        print(R + "Usage: conv <number> <base_to (2/8/10/16)>" + W)
+        print(R + "Penggunaan: conv <angka> <basis_tujuan (2/8/10/16)>" + W)
         return
     
     try:
-        # Int(string, 0) akan menginterpretasikan basis dari prefix (0x, 0o, 0b)
         n=int(parts[1], 0)
         base=int(parts[2])
         
-        print(f"Decimal: {n}")
-        if base==2: print(f"Binary: {bin(n)}")
-        elif base==8: print(f"Octal: {oct(n)}")
-        elif base==10: print(f"Decimal: {str(n)}")
-        elif base==16: print(f"Hexadecimal: {hex(n)}")
-        else: print(R + "Error: Base must be 2, 8, 10, or 16." + W)
+        print(f"Desimal: {n}")
+        if base==2: print(f"Biner: {bin(n)}")
+        elif base==8: print(f"Oktal: {oct(n)}")
+        elif base==10: print(f"Desimal: {str(n)}")
+        elif base==16: print(f"Heksadesimal: {hex(n)}")
+        else: print(R + "Error: Basis harus 2, 8, 10, atau 16." + W)
     except ValueError:
-        print(R + "Error: Invalid number or base." + W)
+        print(R + "Error: Angka atau basis tidak valid." + W)
     except Exception as e: 
         print(R + "Error: " + str(e) + W)
 
@@ -152,15 +151,15 @@ def prog_view(x):
     """Tampilan mode programmer: prog <num>"""
     try:
         n=int(x,0)
-        print(C_BANNER_DARK + "--- Programmer View ---" + W)
-        print(f" {BOLD}DEC:{W} {n}")
+        print(C_BANNER_DARK + "--- Tampilan Programmer ---" + W)
+        print(f" {BOLD}DES:{W} {n}")
         print(f" {BOLD}HEX:{W} {hex(n)}")
-        print(f" {BOLD}OCT:{W} {oct(n)}")
+        print(f" {BOLD}OKT:{W} {oct(n)}")
         print(f" {BOLD}BIN:{W} {bin(n)}")
     except ValueError: 
-        print(R + "Error: Invalid number format. Use 10, 0x, 0o, or 0b." + W)
+        print(R + "Error: Format angka tidak valid. Gunakan 10, 0x, 0o, atau 0b." + W)
     except Exception:
-        print(R + "Error: Could not process number." + W)
+        print(R + "Error: Gagal memproses angka." + W)
 
 def repl():
     os.system('clear')
@@ -168,11 +167,18 @@ def repl():
     print(C_BANNER_DARK + "—" * 53 + W)
     
     func_list = ", ".join(sorted(k for k in SAFE_FUNCS if k[0].isalpha()))
-    help_text = f"""{BOLD}EraldForge Calculator v{os.environ.get("ERALDFORGE_VERSION", "2.x")}{W}
-Type '{BOLD}help{W}' for commands, '{BOLD}exit{W}' to quit.
+    help_text = f"""{BOLD}EraldForge Kalkulator v{os.environ.get("ERALDFORGE_VERSION", "2.x")}{W}
+Kalkulator interaktif dengan fitur keamanan (safe-eval).
+Ketik '{BOLD}bantuan{W}' untuk panduan, '{BOLD}keluar{W}' untuk menutup.
 
-{C_BANNER_DARK}Available Functions:{W} {func_list}
-{C_BANNER_DARK}Special Functions:{W} age(year), days_since(y,m,d)
+{C_BANNER_DARK}Fungsi yang Tersedia:{W} {func_list}
+{C_BANNER_DARK}Contoh Penggunaan Fungsi Khusus:{W}
+- {BOLD}umur(1995){W}
+- {BOLD}hari_sejak(2023, 1, 1){W}
+
+{C_BANNER_DARK}Contoh Ekspresi:{W}
+- {BOLD}10 * (sin(pi/2) + 2) + 1{W}
+- {BOLD}akar(25) + 3 * log10(100){W}
 """
     print(textwrap.fill(help_text, width=os.get_terminal_size().columns))
     print(C_BANNER_DARK + "—" * 53 + W)
@@ -183,20 +189,28 @@ Type '{BOLD}help{W}' for commands, '{BOLD}exit{W}' to quit.
             # Menggunakan Hijau Terang untuk prompt input
             s=input(G + BOLD + "EFC> " + W).strip()
         except (EOFError,KeyboardInterrupt):
-            print(R + "Exiting..." + W); break
+            print(R + "Keluar..." + W); break
         
         if not s: continue
-        if s in ("exit","quit"): break
+        if s in ("exit","quit","keluar"): break
         
-        if s=="help":
+        if s in ("help", "bantuan"):
             print(f"""
-{BOLD}Commands:{W}
- {BOLD}conv{W} <num> <base> - Convert number to base (2/8/10/16).
- {BOLD}prog{W} <num>       - Show binary, hexadecimal, and octal for number.
- {BOLD}history{W}         - Show last 50 entries.
- {BOLD}clear{W}           - Clear history file.
- {BOLD}help{W}            - Show this help.
- {BOLD}exit{W}            - Quit calculator.
+{BOLD}Panduan Penggunaan Kalkulator:{W}
+1. {BOLD}EKSPRESI MATEMATIKA:{W} Ketik ekspresi seperti biasa.
+   Contoh: 15 / 3 + 2**4
+
+2. {BOLD}FUNGSI:{W} Gunakan fungsi yang tersedia (contoh: {BOLD}akar(9){W}, {BOLD}sin(pi/6){W}).
+
+{BOLD}Perintah Khusus:{W}
+ {BOLD}conv{W} <angka> <basis> - Konversi basis angka.
+   Contoh: {BOLD}conv 0xFF 2{W} (mengkonversi 0xFF ke basis 2/biner)
+ {BOLD}prog{W} <angka>       - Tampilkan Biner, Hexa, dan Oktal dari sebuah angka.
+   Contoh: {BOLD}prog 45{W}
+ {BOLD}history{W}           - Tampilkan 50 entri terakhir.
+ {BOLD}clear{W}             - Hapus riwayat (history) yang tersimpan.
+ {BOLD}bantuan{W}           - Tampilkan panduan ini.
+ {BOLD}keluar{W}            - Tutup kalkulator.
 """)
             continue
         
@@ -207,14 +221,14 @@ Type '{BOLD}help{W}' for commands, '{BOLD}exit{W}' to quit.
             conv_cmd(parts); hist.append(s); history_save(hist); continue
         if cmd=="prog":
             if len(parts) > 1: prog_view(parts[1]); hist.append(s); history_save(hist); continue
-            else: print(R + "Error: prog requires a number argument." + W); continue
+            else: print(R + "Error: Perintah prog memerlukan argumen angka." + W); continue
         if cmd=="history":
-            print(C_BANNER_DARK + "--- History (last 50) ---" + W)
+            print(C_BANNER_DARK + "--- Riwayat (50 terakhir) ---" + W)
             for i,l in enumerate(hist[-50:],start=1): print(f"{i:02}. {l}")
-            print(C_BANNER_DARK + "-------------------------" + W)
+            print(C_BANNER_DARK + "----------------------------" + W)
             continue
         if cmd=="clear":
-            hist=[]; history_save(hist); print(C_BANNER_DARK + "History cleared." + W); continue
+            hist=[]; history_save(hist); print(C_BANNER_DARK + "Riwayat telah dihapus." + W); continue
         
         # Expression Evaluation
         try:
@@ -225,7 +239,6 @@ Type '{BOLD}help{W}' for commands, '{BOLD}exit{W}' to quit.
             print(R + BOLD + "Error: " + W + str(e))
 
 if __name__=="__main__":
-    # Menghapus readline history default agar tidak mengganggu history kustom
     if readline.get_current_history_length() > 0:
         readline.clear_history() 
     repl()
