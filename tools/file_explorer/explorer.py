@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/env python3
-# EraldForge File Explorer v6.0 - Advanced Terminal File Explorer
-# Fitur: Banner Neon Baru, Dual Theme, Navigasi Cepat, Detail Ekstensif, ZIP/UNZIP, Hapus Rekursif.
+# EraldForge File Explorer v6.1 - Advanced Terminal File Explorer
+# Peningkatan: Menu 3 Kolom Modern, Fitur Mkdir & Touch.
 
 import os, shutil, stat, zipfile
 from pathlib import Path
@@ -9,12 +9,12 @@ import textwrap
 
 # --- Konfigurasi Dasar & Lokasi ---
 HOME = Path.home()
-VERSION = "6.0"
+VERSION = "6.1"
 APP_NAME = "EraldForge File Explorer"
 
 # --- Definisi Warna & Gaya ---
 # Warna untuk "Pro" Theme (Default: Biru/Cyan)
-C_PRO_DIR = "\033[96m"   # Cyan untuk Direktori
+C_PRO_DIR = "\033[96m"    # Cyan untuk Direktori
 C_PRO_FILE = "\033[37m" # Putih untuk File
 C_PRO_SIZE = "\033[94m" # Biru terang untuk ukuran
 C_PRO_TIME = "\033[35m" # Magenta untuk waktu
@@ -38,12 +38,12 @@ def get_banner(show_info=True, theme_name="pro", prompt_color=C_PRO_PROMPT, dir_
     """Mencetak banner ASCII sesuai permintaan dengan warna Neon dan info tema."""
     ASCII_LINES = [
         f"{Y}·························································{W}",
-        f"{Y}: {BOLD}_____ _ _        _____            _                     :{W}",
-        f"{Y}:|  ___(_) | ___  | ____|_  ___ __ | | ___  _ __ ___ _ __ :{W}",
+        f"{Y}: {BOLD}_____ _ _         _____            _                     :{W}",
+        f"{Y}:| ___(_) | ___  | ____|_  ___ __ | | ___  _ __ ___ _ __ :{W}",
         f"{Y}:| |_  | | |/ _ \ |  _| \ \/ / '_ \| |/ _ \| '__/ _ \ '__|:{W}",
-        f"{Y}:|  _| | | |  __/ | |___ >  <| |_) | | (_) | | |  __/ |   :{W}",
+        f"{Y}:| _|  | | |  __/ | |___ >  <| |_) | | (_) | | |  __/ |   :{W}",
         f"{Y}:|_|   |_|_|\___| |_____/_/\_\ .__/|_|\___/|_|  \___|_|   :{W}",
-        f"{Y}:                            |_|                          :{W}",
+        f"{Y}:                             |_|                          :{W}",
         f"{Y}·························································{W}",
     ]
     
@@ -253,6 +253,36 @@ def action_copy_move(cwd: Path, action: str):
     except Exception as e:
         print(f"{R}❌ Error saat {action}: {e}{W}")
 
+def action_mkdir(cwd: Path, dir_name: str):
+    """Membuat direktori baru."""
+    new_dir = cwd / dir_name
+    if not dir_name:
+        print(f"{R}❌ Error: Nama direktori harus diberikan.{W}")
+        return
+    if new_dir.exists():
+        print(f"{R}❌ Error: Direktori '{dir_name}' sudah ada.{W}")
+        return
+    try:
+        new_dir.mkdir(parents=True, exist_ok=False)
+        print(f"{PROMPT_COLOR}✅ Berhasil: Direktori '{dir_name}' dibuat.{W}")
+    except Exception as e:
+        print(f"{R}❌ Error membuat direktori: {e}{W}")
+        
+def action_touch(cwd: Path, file_name: str):
+    """Membuat file kosong baru."""
+    new_file = cwd / file_name
+    if not file_name:
+        print(f"{R}❌ Error: Nama file harus diberikan.{W}")
+        return
+    if new_file.exists():
+        print(f"{R}❌ Error: File '{file_name}' sudah ada.{W}")
+        return
+    try:
+        new_file.touch()
+        print(f"{PROMPT_COLOR}✅ Berhasil: File kosong '{file_name}' dibuat.{W}")
+    except Exception as e:
+        print(f"{R}❌ Error membuat file: {e}{W}")
+
 # --- Loop Utama Program ---
 def main():
     # Perintah untuk mendapatkan target dari list berdasarkan index/nama (perbaikan logika)
@@ -273,6 +303,7 @@ def main():
                 if item[1] == target_str:
                     return item
             # Jika item tidak ada di list (misal hidden file, tapi di-target langsung)
+            # Ini penting untuk aksi yang menargetkan file/folder yang tidak di-list (seperti hidden files)
             return (0, target_str, '', '', '', p, '') # Format dummy
 
         return None
@@ -309,18 +340,43 @@ def main():
         
         print("-" * term_width)
         
-        # Menu Perintah Canggih
-        print(f"{BOLD}{PROMPT_COLOR}MENU:{W}")
-        print(f"  {Y}u{W}=Up | {Y}cd <dir>{W}=ChangeDir | {Y}ls{W}=Refresh/List")
-        print(f"  {Y}p <idx/name>{W}=Preview | {Y}d <idx/name>{W}=Delete (Rec.)")
-        print(f"  {Y}c/m{W}=Copy/Move | {Y}z <idx/name>{W}=Zip | {Y}un <idx/name>{W}=Unzip")
-        print(f"  {Y}q{W}=Quit/Exit")
+        # --- MENU PERINTAH CANGGIH (Rapi, Sejajar, Profesional) ---
+        print(f"{BOLD}{PROMPT_COLOR}:: MENU KOMANDO ::{W}")
+        
+        # Susunan Menu 3 Kolom
+        menu_items = [
+            (f"{Y}u{W}=Up",              f"| {Y}cd <dir>{W}=Change Dir",  f"| {Y}ls{W}=Refresh/List"), 
+            (f"| {Y}q{W}=Quit",          f"| {Y}p <tgt>{W}=Preview",     f"| {Y}d <tgt>{W}=Delete (Rec.)"),
+            (f"| {Y}c{W}=Copy",          f"| {Y}m{W}=Move",             f"| {Y}z <tgt>{W}=Zip"),
+            (f"| {Y}un <tgt>{W}=Unzip",   f"| {Y}mk <name>{W}=Mkdir",     f"| {Y}touch <name>{W}=Touch File"),
+            (f"| {Y}f <name>{W}=Find (TODO)", "",                        ""),
+        ]
+
+        # Padding untuk kolom
+        col1_width = 13
+        col2_width = 20
+        col3_width = 23
+        
+        for line in menu_items:
+            # Pastikan line memiliki 3 elemen, jika kurang tambahkan string kosong
+            line = list(line) + [''] * (3 - len(line))
+            
+            col1, col2, col3 = line
+            
+            print(
+                f"  {col1:<{col1_width}} {col2:<{col2_width}} {col3:<{col3_width}}",
+                sep='',
+                end='\n'
+            )
+        
+        print("-" * term_width)
 
         command = input(f"{PROMPT_COLOR}CMD > {W}").strip()
         cmd_parts = command.split(' ', 1)
         action = cmd_parts[0].lower()
         target = cmd_parts[1].strip() if len(cmd_parts) > 1 else ""
 
+        # --- Aksi Navigasi & Utility ---
         if action in ("q", "quit", "exit"):
             print(f"\n{Y}Keluar dari {APP_NAME} v{VERSION}. Sampai jumpa!{W}")
             break
@@ -330,22 +386,20 @@ def main():
                  print(f"{Y}Anda sudah berada di root directory!{W}")
             else:
                 cwd = cwd.parent
-            continue # Lanjut ke loop berikutnya (refresh)
+            continue 
             
         elif action in ("ls", "list"):
-            continue # Lanjut ke loop berikutnya (refresh)
+            continue 
 
         elif action in ("cd", "chdir"):
             try:
-                # Coba resolusi path absolut atau relatif
                 new_path = Path(target).expanduser()
                 if not new_path.is_absolute():
                     new_path = cwd / target
                 
-                # Check jika target adalah index, dan dapatkan nama foldernya
                 selected_item_cd = get_target_from_list(target, items, cwd)
                 if selected_item_cd:
-                    new_path = selected_item_cd[5] # Ambil Path dari tuple item
+                    new_path = selected_item_cd[5]
                 
                 if new_path.is_dir():
                     cwd = new_path.resolve()
@@ -355,8 +409,18 @@ def main():
                 print(f"{R}❌ Error CD: {e}{W}")
             input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
             continue
+        
+        elif action in ("mk", "mkdir"):
+            action_mkdir(cwd, target)
+            input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
+            continue
+            
+        elif action in ("touch"):
+            action_touch(cwd, target)
+            input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
+            continue
 
-        # --- Aksi dengan Target ---
+        # --- Aksi dengan Target (File/Folder) ---
         selected_item = get_target_from_list(target, items, cwd)
 
         if not selected_item and action in ('p', 'd', 'z', 'un'):
@@ -370,7 +434,6 @@ def main():
             if path_to_act and path_to_act.is_file():
                 action_preview(path_to_act)
             elif path_to_act and path_to_act.is_dir() and selected_item[1] != '..':
-                # Masuk ke direktori jika preview pada folder, tapi abaikan '..'
                 cwd = path_to_act.resolve() 
             else:
                 print(f"{R}❌ Target bukan file.{W}")
@@ -403,6 +466,10 @@ def main():
             
         elif action in ("m", "move"):
             action_copy_move(cwd, 'move')
+            input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
+            
+        elif action == "f": # Placeholder for Find action
+            print(f"{Y}Fitur 'Find' akan segera diimplementasikan (TODO).{W}")
             input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
             
         else:
