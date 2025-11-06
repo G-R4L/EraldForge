@@ -15,8 +15,8 @@ FILE = HOME / ".eraldforge_todo.json"
 CURRENT_FILTER = "all" # 'all', 'high', 'med', 'low', 'done', 'todo'
 
 # ---------------- Colors & Style ----------------
-C_NEON = "\033[93m"     # Neon Yellow (Banner Text, High Priority)
-C_BOX  = "\033[96m"     # Cyan (Box/Headers/Banner Border)
+C_NEON = "\033[93m"     # Neon Yellow (Banner, High Priority)
+C_BOX  = "\033[96m"     # Cyan (Box/Headers - Dibuat kontras dengan banner)
 G      = "\033[32m"     # Green (DONE status)
 R      = "\033[91m"     # Red (DELETE / WARNING)
 Y      = "\033[33m"     # Yellow (General Text, Medium Priority)
@@ -24,17 +24,17 @@ W      = "\033[0m"      # Reset
 BOLD   = "\033[1m"
 DIM    = "\033[2m"      # Dim (For completed tasks)
 
-# ---------------- Banner ASCII (Telah Dirapikan & Warna Kuning Neon) ----------------
-# Menggunakan C_BOX (Cyan) untuk border dan C_NEON (Neon Yellow) untuk teks
+# ---------------- Banner ASCII (KUNING NEON KESELURUHAN) ----------------
+# Menggunakan C_NEON (Kuning Neon) untuk semua elemen visual banner
 # Panjang total setiap baris adalah 25 karakter.
 BANNER_LINES = [
-    C_BOX + "·························" + W,
-    C_BOX + ":" + BOLD + C_NEON + " _____         _       " + W + C_BOX + ":" + W,
-    C_BOX + ":" + BOLD + C_NEON + "|_   _|__   __| | ___  " + W + C_BOX + ":" + W,
-    C_BOX + ":" + BOLD + C_NEON + "  | |/ _ \ / _` |/ _ \ " + W + C_BOX + ":" + W,
-    C_BOX + ":" + BOLD + C_NEON + "  | | (_) | (_| | (_) |" + W + C_BOX + ":" + W,
-    C_BOX + ":" + BOLD + C_NEON + "  |_|\___/ \__,_|\___/ " + W + C_BOX + ":" + W,
-    C_BOX + "·························" + W,
+    C_NEON + "·························" + W,
+    C_NEON + ":" + BOLD + C_NEON + " _____         _       " + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + C_NEON + "|_   _|__   __| | ___  " + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + C_NEON + "  | |/ _ \ / _` |/ _ \ " + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + C_NEON + "  | | (_) | (_| | (_) |" + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + C_NEON + "  |_|\___/ \__,_|\___/ " + W + C_NEON + ":" + W,
+    C_NEON + "·························" + W,
 ]
 
 def print_banner():
@@ -42,6 +42,7 @@ def print_banner():
     os.system("clear")
     for line in BANNER_LINES:
         print(line)
+    # Header di bawah banner tetap menggunakan C_BOX (Cyan) agar kontras
     print(C_BOX + BOLD + "EraldForge Todo Manager (Pro Edition)" + W)
     print(C_BOX + "══════════════════════════════════════════" + W)
 
@@ -118,7 +119,7 @@ def get_prio_style(pr):
     """Memberikan warna dan padding 4 karakter berdasarkan prioritas."""
     pr = pr.lower().strip()
     if pr == "high":
-        # Menggunakan R (Red) untuk HIGH, seperti sebelumnya
+        # Menggunakan R (Red) untuk HIGH
         return BOLD + R, "HIGH"
     elif pr == "low":
         return DIM + C_BOX, "LOW "
