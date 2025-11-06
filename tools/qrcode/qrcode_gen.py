@@ -12,13 +12,17 @@ import subprocess
 import re
 
 try:
+    # Mengimpor library yang dibutuhkan
     import qrcode
+    from PIL import Image # Tambahkan impor Pillow
     # Mengimpor konstanta ECC untuk kontrol level koreksi kesalahan
     from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
 except ImportError:
     # Set qrcode ke None jika library tidak ditemukan untuk menangani fallback
     qrcode = None
     ERROR_CORRECT_L = None
+    # Pastikan PIL juga di set None jika qrcode gagal, agar error handling di main() bekerja
+    Image = None
 
 # ---------------- Tema & Warna ----------------
 
@@ -40,11 +44,11 @@ C = get_theme_colors()
 # Banner dari input user, diperbaiki alignmentnya dan menggunakan warna Neon Yellow (P)
 BANNER_LINES = [
     C["P"] + "·················································" + C["X"],
-    C["P"] + "\033[1m" + ":  ___        ____          _                  " + C["P"] + ":",
-    C["P"] + "\033[1m" + ": / _ \ _ __ / ___|___   __| | ___             " + C["P"] + ":",
+    C["P"] + "\033[1m" + ":  ___      ____       _                       " + C["P"] + ":",
+    C["P"] + "\033[1m" + ": / _ \ _ __ / ___|___  __| | ___              " + C["P"] + ":",
     C["P"] + "\033[1m" + ":| | | | '__| |   / _ \ / _` |/ _ \            " + C["P"] + ":",
     C["P"] + "\033[1m" + ":| |_| | |  | |__| (_) | (_| |  __/            " + C["P"] + ":",
-    C["P"] + "\033[1m" + ": \__\_\_|   \____\___| \__,_|\___|            " + C["P"] + ":",
+    C["P"] + "\033[1m" + ": \__\_\_|   \____\___/ \__,_|\___|            " + C["P"] + ":",
     C["P"] + "\033[1m" + ": / ___| ___ _ __   ___ _ __ __ _| |_ ___  _ __ " + C["P"] + ":",
     C["P"] + "\033[1m" + ":| |  _ / _ \ '_ \ / _ \ '__/ _` | __/ _ \| '__|" + C["P"] + ":",
     C["P"] + "\033[1m" + ":| |_| |  __/ | | |  __/ | | (_| | || (_) | |  " + C["P"] + ":",
@@ -57,7 +61,7 @@ def display_banner():
     os.system('clear')
     for line in BANNER_LINES:
         print(line)
-    print(C["G"] + "QR Code Generator EraldForge Canggih (Fitur #8)" + C["X"])
+    print(C["G"] + "QR Code Generator EraldForge Canggih" + C["X"])
     print(C["G"] + "===================================================" + C["X"] + "\n")
 
 def ascii_qr(matrix, color=C['P']):
@@ -72,7 +76,8 @@ def ascii_qr(matrix, color=C['P']):
 def copy_to_clipboard(path_str):
     """Menyalin path file ke clipboard (khusus Termux)."""
     try:
-        proc = subprocess.Popen(["termux-clipboard-set"], stdin=subprocess.PIPE, text=True, check=False)
+        # Menghapus cek = False karena check=False tidak didukung oleh semua python
+        proc = subprocess.Popen(["termux-clipboard-set"], stdin=subprocess.PIPE, text=True)
         proc.communicate(input=path_str, timeout=1)
         print(f"\n{C['G']}✅ Path file berhasil disalin ke clipboard (via termux-clipboard-set).{C['X']}")
     except FileNotFoundError:
@@ -124,7 +129,7 @@ def get_color_input(prompt, default_hex):
             # Memastikan ada '#' di depan
             if not color_input.startswith('#'):
                 color_input = '#' + color_input
-            return color_input
+            return color_input.upper() # Ubah ke UPPERCASE untuk konsistensi
         print(f"{C['R']}Format HEX tidak valid. Gunakan format #RRGGBB.{C['X']}")
 
 # ---------------- Penanganan Tipe Data Terstruktur ----------------
@@ -133,6 +138,9 @@ def get_text_url_data():
     """Mengumpulkan data untuk tipe Teks/URL."""
     print(C["W"] + "\n--- Data Teks/URL ---" + C["X"])
     data = input(f"{C['B']}Masukkan Teks atau URL yang akan di-encode: {C['X']}").strip()
+    # Menambahkan validasi kosong di sini agar flow utama lebih bersih
+    if not data:
+        return None, None
     return data, "TEXT/URL"
 
 def get_wifi_data():
@@ -159,10 +167,14 @@ def get_wifi_data():
     else:
         encryption = "WPA"
         
-    # Format Wi-Fi: S:<SSID>;T:<ENCRYPTION>;P:<PASSWORD>;;
-    # WOILAH NJERR
     
-    if encryption == "nopass":
+    if encryption == "nopass" or not password:
+        # Jika terbuka atau password kosong, set type ke nopass, tetapi perhatikan bahwa VCard reader
+        # cenderung lebih baik dengan format ini.
+        if not password and encryption != "nopass":
+             print(f"{C['R']}⚠️ Peringatan: Anda memilih {encryption} tetapi Password kosong. Dianggap Terbuka.{C['X']}")
+             encryption = "nopass"
+
         qr_data = f"WIFI:S:{ssid};T:nopass;H:false;;"
         info_type = "Wi-Fi (Terbuka)"
     else:
@@ -194,12 +206,14 @@ def get_vcard_data():
     if org:
         vcard_lines.append(f"ORG:{org}")
     if phone:
+        # Menggunakan TYPE=CELL untuk ponsel
         vcard_lines.append(f"TEL;TYPE=CELL:{phone}")
     if email:
         vcard_lines.append(f"EMAIL;TYPE=PREF,INTERNET:{email}")
         
     vcard_lines.append("END:VCARD")
     
+    # Gabungkan semua baris menjadi satu string besar dengan newline
     qr_data = "\n".join(vcard_lines)
     info_type = "VCard (Kontak)"
     
@@ -228,7 +242,7 @@ def generate_qr_code_flow(data, info_type):
     # 4. Tampilkan Detail Final
     print(C["G"] + "\n--- Detail Generasi Final ---" + C["X"])
     print(f"Tipe Data: {info_type}")
-    print(f"Data Mentah (Awal): {data[:50]}...")
+    print(f"Data Mentah (Awal): {data[:50].replace('\n', ' ')}...")
     print(f"ECC Level: {ecc_desc}")
     print(f"Ukuran/Border: {box_size} / {border}")
     print(f"Warna PNG (FG/BG): {fg_color} / {bg_color}")
@@ -253,6 +267,7 @@ def generate_qr_code_flow(data, info_type):
         print(ascii_qr(matrix, color=C['P'])) 
         
         # 7. Generate dan Simpan PNG
+        # make_image dari qrcode.py menggunakan PIL
         img = qr.make_image(fill_color=fg_color, back_color=bg_color)
         img.save(str(png_path))
         
@@ -275,7 +290,7 @@ def main_menu():
         print(f"  {C['B']}3{C['X']}. {C['W']}Kartu Kontak VCard (Simpan Nomor/Email){C['X']}")
         print(f"  {C['R']}4{C['X']}. {C['R']}Keluar{C['X']}")
         
-        choice = input(f"\nPilihan (1-4): ").strip()
+        choice = input(f"\n{C['B']}Pilihan (1-4): {C['X']}").strip()
 
         data = None
         info_type = None
@@ -297,19 +312,24 @@ def main_menu():
         if data:
             generate_qr_code_flow(data, info_type)
         elif data is not None:
-             # Menangani kasus di mana pengguna memasukkan data kosong (misalnya di Teks/URL)
-             print(f"{C['R']}Input data tidak boleh kosong.{C['X']}")
+              # Ini menangani kasus data kosong saat tipe data tidak boleh kosong
+              print(f"{C['R']}Input data tidak boleh kosong.{C['X']}")
 
-        input(f"\n{C['G']}Tekan Enter untuk kembali ke Menu Utama...{C['X']}")
+        if choice != '4':
+            input(f"\n{C['G']}Tekan Enter untuk kembali ke Menu Utama...{C['X']}")
         
 
 def main():
     """Fungsi utama."""
-    if qrcode is None:
-        display_banner()
-        print(f"{C['R']}❌ Peringatan: Library 'qrcode' atau 'pillow' tidak terinstal.{C['X']}")
+    # Menangani kegagalan impor (Dependensi belum terinstal)
+    if qrcode is None or Image is None:
+        # Gunakan clear di sini untuk memastikan pesan error terlihat
+        os.system('clear')
+        # Cetak banner sederhana agar lebih jelas
+        print(f"{C['P']}========== EraldForge QR Generator =========={C['X']}")
+        print(f"{C['R']}❌ Peringatan KRITIS: Library 'qrcode' atau 'pillow' tidak terinstal!{C['X']}")
         print(f"{C['G']}Instal dengan perintah:{C['W']}\n  pip install qrcode pillow{C['X']}")
-        input(f"\n{C['G']}Tekan Enter untuk keluar...{C['X']}")
+        input(f"\n{C['R']}Tekan Enter untuk keluar...{C['X']}")
         sys.exit(1)
 
     try:
