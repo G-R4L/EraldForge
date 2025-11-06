@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/env python3
-# EraldForge - Calculator (Advanced, Secure, and Modern REPL)
+# EraldForge - Calculator (Project Zenith: Total Rework)
 
 import os, ast, math, readline, sys
 from fractions import Fraction
@@ -12,16 +12,17 @@ HOME = os.path.expanduser("~")
 HIST_FILE = os.path.join(HOME, ".eraldforge_calc_history")
 WAKTU_SEKARANG = datetime.now()
 
-# --- Definisi Warna (Skema Profesional Neon) ---
+# --- Definisi Warna (Skema Zenith: Neon Kuning & Cyan) ---
 R = "\033[91m"     # Merah Terang (Error)
 G = "\033[92m"     # Hijau Terang (Prompt Input)
-C_BANNER_DARK = "\033[96m"  # Cyan Terang (Garis Box, Info, dan Batas)
-C_BANNER_LIGHT = "\033[93m" # Kuning Terang/Neon (Teks "Calculator")
-C_RESULT = "\033[97m"  # Putih Terang (Hasil)
+C_BOX = "\033[96m"  # Cyan Terang (Garis Box, Batas, Info)
+C_NEON = "\033[93m" # Kuning Terang/Neon (Full Banner & Highlighting)
+C_RESULT = "\033[97m"  # Putih Terang (Hasil Perhitungan)
 W = "\033[0m"
 BOLD = "\033[1m"
 
-# --- Banner ASCII ---
+# --- Banner ASCII Klasik (FULL NEON) ---
+# Menggunakan format ASCII klasik yang diminta
 BANNER_LINES = [
     " ················································· ",
     " :  ____      _            _       _             : ",
@@ -33,16 +34,9 @@ BANNER_LINES = [
 ]
 
 def print_banner():
-    """Mencetak banner: Box Cyan Terang, Teks Kuning Neon."""
-    for line in BANNER_LINES:
-        # Pewarnaan Teks Calculator menjadi Kuning Neon (C_BANNER_LIGHT)
-        # dan memastikan karakter box (:, |, /, \) berwarna Cyan Terang (C_BANNER_DARK)
-        colored_line = (
-            C_BANNER_DARK + line[0:3] + W + # Sisi kiri box (termasuk :)
-            C_BANNER_LIGHT + line[3:30].replace(' ', ' ') + W + # Teks Calculator (Kucing Neon)
-            C_BANNER_DARK + line[30:] + W # Sisi kanan box (termasuk :)
-        )
-        print(colored_line)
+    """Mencetak banner full Kuning Neon."""
+    out = [C_NEON + line.replace(" ", " ") + W for line in BANNER_LINES]
+    print("\n".join(out))
 
 # --- Lingkungan Matematika Aman (Safe Math Environment) ---
 SAFE_FUNCS = {
@@ -61,7 +55,7 @@ ALLOWED_NODES = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Num, ast.Constant,
                  ast.USub, ast.UAdd, ast.Call, ast.Load, ast.Name, ast.Tuple, ast.List,
                  ast.BitXor, ast.BitAnd, ast.BitOr, ast.LShift, ast.RShift)
 
-# --- Kelas SafeEval (Tidak ada perubahan signifikan) ---
+# --- Kelas SafeEval (Inti Logika - Tetap Canggih & Aman) ---
 class SafeEval(ast.NodeVisitor):
     def generic_visit(self, node):
         if type(node) not in ALLOWED_NODES:
@@ -132,7 +126,7 @@ def conv_cmd(parts):
         n = int(parts[1], 0)
         base = int(parts[2])
         
-        print(C_BANNER_DARK + f"Desimal: {n}" + W)
+        print(C_BOX + f"BASE CONVERT > Desimal: {n}" + W)
         if base == 2: print(f"Biner: {bin(n)}")
         elif base == 8: print(f"Oktal: {oct(n)}")
         elif base == 10: print(f"Desimal: {str(n)}")
@@ -144,13 +138,12 @@ def conv_cmd(parts):
 def prog_view(x):
     try:
         n = int(x, 0)
-        print(C_BANNER_DARK + "—" * 25 + W)
-        print(C_BANNER_DARK + BOLD + "Tampilan Programmer" + W)
-        print(f" {BOLD}DESIMAL (DEC):{W} {n}")
-        print(f" {BOLD}HEKSADESIMAL (HEX):{W} {hex(n)}")
-        print(f" {BOLD}OKTAL (OCT):{W} {oct(n)}")
-        print(f" {BOLD}BINER (BIN):{W} {bin(n)}")
-        print(C_BANNER_DARK + "—" * 25 + W)
+        print(C_BOX + BOLD + "┌— PROGRAMMER MODE —" + W)
+        print(f" {C_NEON}DESIMAL (DEC):{W} {n}")
+        print(f" {C_NEON}HEKSADESIMAL (HEX):{W} {hex(n)}")
+        print(f" {C_NEON}OKTAL (OCT):{W} {oct(n)}")
+        print(f" {C_NEON}BINER (BIN):{W} {bin(n)}")
+        print(C_BOX + BOLD + "└—————————————————" + W)
     except Exception: 
         print(R + "Error: Format angka tidak valid." + W)
 
@@ -158,49 +151,51 @@ def prog_view(x):
 def repl():
     os.system('clear')
     print_banner()
-    print(C_BANNER_DARK + "—" * 53 + W)
+    # Menggunakan C_BOX untuk garis pemisah informasi
+    print(C_BOX + " Versi 3.3: Aman | Modern | Multifungsi" + W)
+    print(C_BOX + "—" * 53 + W) # Garis sepanjang banner (53 karakter)
     
     func_list = ", ".join(sorted(k for k in SAFE_FUNCS if k[0].isalpha()))
     
-    help_text = f"""{BOLD}EraldForge Kalkulator v3.1 | Aman & Multifungsi{W}
-Ketik '{BOLD}bantuan{W}' untuk panduan, '{BOLD}keluar{W}' untuk menutup.
-{C_BANNER_DARK}Tanggal Server: {WAKTU_SEKARANG.strftime("%d-%m-%Y %H:%M:%S")}{W}
+    help_text = f"""{BOLD}EraldForge Kalkulator Project Zenith{W}
+Ketik '{C_NEON}bantuan{W}' untuk panduan, '{C_NEON}keluar{W}' untuk menutup.
+{C_BOX}Waktu Server: {WAKTU_SEKARANG.strftime("%d-%m-%Y %H:%M:%S")}{W}
 
-{C_BANNER_DARK}Fungsi Tersedia:{W} {func_list}
+{C_BOX}Fungsi Tersedia:{W} {func_list}
 """
     print(textwrap.fill(help_text, width=os.get_terminal_size().columns))
-    print(C_BANNER_DARK + "—" * 53 + W)
+    print(C_BOX + "—" * 53 + W) # Garis sepanjang banner (53 karakter)
     
     hist = history_load()
     while True:
         try:
-            s = input(G + BOLD + "EFC> " + W).strip()
+            # Prompt Hijau Terang (Standard High-Tech Input)
+            s = input(G + BOLD + "EFC_ZENITH > " + W).strip()
         except (EOFError, KeyboardInterrupt):
-            print("\n" + R + BOLD + "Sampai jumpa! Keluar dari kalkulator." + W); break
+            print("\n" + R + BOLD + "Keluar dari Project Zenith. Sampai jumpa!" + W); break
         
         if not s: continue
         if s.lower() in ("exit","quit","keluar"): break
         
         if s.lower() in ("help", "bantuan"):
             print(f"""
-{BOLD}Panduan Penggunaan Kalkulator ({C_BANNER_DARK}Mode Canggih{W}){W}
+{C_NEON}Panduan Penggunaan Kalkulator (Project Zenith){W}
 
-{BOLD}1. Perhitungan Dasar & Ilmiah:{W}
-   Cukup ketik ekspresi matematika Anda.
-   Contoh: {BOLD}(10 * sin(pi/6)) / 2 + akar(144){W}
+{C_BOX}1. Perhitungan Dasar & Ilmiah:{W}
+   Ketik ekspresi matematika Anda. (Contoh: {BOLD}(10 * sin(pi/6)) / 2 + akar(144){W})
 
-{BOLD}2. Konversi Basis Angka (Programmer):{W}
+{C_BOX}2. Mode Programmer (Konversi Basis):{W}
    - {BOLD}prog <angka>{W} : Tampilkan Desimal, Hexa, Oktal, Biner.
-     Contoh: {BOLD}prog 123456{W} atau {BOLD}prog 0xFF{W}
+     (Contoh: {C_NEON}prog 0xBE EF{W} atau {C_NEON}prog 1000{W})
    - {BOLD}conv <angka> <basis>{W} : Konversi ke basis tertentu (2/8/10/16).
-     Contoh: {BOLD}conv 0b10110 10{W} (Biner ke Desimal)
+     (Contoh: {C_NEON}conv 0b10110 10{W})
 
-{BOLD}3. Fungsi Waktu & Pecahan:{W}
-   - {BOLD}umur(YYYY){W}
-   - {BOLD}hari_sejak(YYYY, MM, DD){W}
-   - {BOLD}Pecahan(num, den){W}
+{C_BOX}3. Fungsi Waktu & Pecahan:{W}
+   - {BOLD}umur(YYYY){W} (Contoh: {C_NEON}umur(1995){W})
+   - {BOLD}hari_sejak(YYYY, MM, DD){W} (Contoh: {C_NEON}hari_sejak(2023, 1, 1){W})
+   - {BOLD}Pecahan(num, den){W} (Contoh: {C_NEON}Pecahan(2/3) + Pecahan(1/4){W})
 
-{BOLD}4. Perintah Utilitas:{W}
+{C_BOX}4. Perintah Utilitas:{W}
    - {BOLD}history{W} : Tampilkan riwayat.
    - {BOLD}clear{W} : Hapus riwayat.
    - {BOLD}keluar{W} / {BOLD}exit{W} : Tutup kalkulator.
@@ -217,25 +212,25 @@ Ketik '{BOLD}bantuan{W}' untuk panduan, '{BOLD}keluar{W}' untuk menutup.
             if len(parts) > 1: prog_view(parts[1]); hist.append(s); history_save(hist); continue
             else: print(R + "Error: Perintah prog memerlukan argumen angka." + W); continue
         elif cmd == "history":
-            print(C_BANNER_DARK + "--- Riwayat (50 terakhir) ---" + W)
-            for i,l in enumerate(hist[-50:],start=1): print(f"{i:02}. {l}")
-            print(C_BANNER_DARK + "----------------------------" + W)
+            print(C_BOX + "--- RIWAYAT PERHITUNGAN (50 terakhir) ---" + W)
+            for i,l in enumerate(hist[-50:],start=1): print(f"{C_NEON}{i:02}.{W} {l}")
+            print(C_BOX + "----------------------------------------" + W)
             continue
         elif cmd == "clear":
-            hist = []; history_save(hist); print(C_BANNER_DARK + "Riwayat telah dihapus." + W); continue
+            hist = []; history_save(hist); print(C_BOX + "Riwayat telah dihapus." + W); continue
         
         # Expression Evaluation
         try:
             res = safe_eval(s)
             
-            # Peningkatan tampilan hasil: Tambahkan pemisah visual (Cyan Terang)
-            print(C_BANNER_DARK + "=" * 10 + W)
+            # Tampilan Hasil yang Sangat Menonjol dan Profesional
+            print(C_BOX + BOLD + "┌— HASIL —" + W)
             print(C_RESULT + BOLD + str(res) + W)
-            print(C_BANNER_DARK + "=" * 10 + W)
+            print(C_BOX + BOLD + "└—————————" + W)
             
             hist.append(s); history_save(hist)
         except Exception as e:
-            print(R + BOLD + "Error: " + W + str(e))
+            print(R + BOLD + "ERROR! " + W + str(e))
 
 if __name__ == "__main__":
     if readline.get_current_history_length() > 0:
