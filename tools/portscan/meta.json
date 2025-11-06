@@ -1,7 +1,7 @@
 {
-  "name": "Port Scanner (wrapper)",
+  "name": "Port Scanner (Ultimate)",
   "id": "portscan",
-  "desc": "Wrapper ke nmap (harus install nmap). Hanya menjalankan scan dasar (non-exploit). Requires consent.",
+  "desc": "Port scanner modern & profesional. Mendukung Nmap, fallback socket scan, TCP/UDP, top ports, full range, custom ports, scan subnet, logging & save hasil. Requires consent.",
   "entry": "portscan.py",
   "lang": "python",
   "security": true
