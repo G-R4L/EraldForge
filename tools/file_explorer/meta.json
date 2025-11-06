@@ -1,8 +1,9 @@
 {
-  "name": "File Explorer",
-  "id": "file_explorer",
-  "desc": "Navigate filesystem, zip/unzip, show sizes. Non-destructive by default.",
-  "entry": "explorer.py",
+  "name": "File Commander",
+  "id": "file_commander",
+  "desc": "Advanced filesystem navigation, copy/move/delete (recursive), zip/unzip, and file preview.",
+  "entry": "commander.py",
+  "version": "5.0",
   "lang": "python",
   "security": false
 }
