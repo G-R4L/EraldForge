@@ -1,25 +1,27 @@
-#!/data/data/com.termux/files/usr/bin/env python3
+#!/usr/bin/env python3
 # EraldForge - Todo Manager (Pro Edition)
-# Upgraded for better aesthetics, color-coded status, and modern CLI look.
+# Ditingkatkan untuk estetika yang lebih baik, status berkode warna, dan tampilan CLI modern.
 
 import json
 import os
 import sys
 from pathlib import Path
 
-# ---------------- Configuration & File Paths ----------------
+# ---------------- Konfigurasi & Jalur File ----------------
+# Menggunakan Path.home() untuk mendapatkan direktori home user.
 HOME = Path.home()
+# File akan disimpan di direktori home, misalnya: /data/data/com.termux/files/home/.eraldforge_todo.json
 FILE = HOME / ".eraldforge_todo.json"
 
-# ---------------- Colors & Style ----------------
-C_NEON = "\033[93m"    # Neon Yellow (Banner, High Priority)
-C_BOX  = "\033[96m"    # Cyan (Box/Headers)
-G     = "\033[32m"     # Green (DONE status)
-R     = "\033[91m"     # Red (DELETE / WARNING)
-Y     = "\033[33m"     # Yellow (General Text, Medium Priority)
+# ---------------- Warna & Gaya ANSI ----------------
+C_NEON = "\033[93m"    # Neon Yellow (Banner, Prioritas Tinggi)
+C_BOX  = "\033[96m"    # Cyan (Box/Header)
+G     = "\033[32m"     # Green (Status SELESAI)
+R     = "\033[91m"     # Red (HAPUS / Prioritas Tinggi)
+Y     = "\033[33m"     # Yellow (Teks Umum, Prioritas Sedang)
 W     = "\033[0m"      # Reset
 BOLD  = "\033[1m"
-DIM   = "\033[2m"     # Dim (For completed tasks)
+DIM   = "\033[2m"     # Redup (Untuk tugas yang sudah selesai)
 
 # ---------------- Banner ASCII ----------------
 BANNER_LINES = [
@@ -34,17 +36,18 @@ BANNER_LINES = [
 
 def print_banner():
     """Mencetak banner dan header utama aplikasi."""
-    os.system("clear")
+    # os.system("clear") # Dikomentari agar tidak menghapus output di Canvas
     for line in BANNER_LINES:
         print(line)
     print(C_BOX + BOLD + "EraldForge Todo Manager (Pro Edition)" + W)
     print(C_BOX + "══════════════════════════════════════════" + W)
 
-# ---------------- Core Data Functions ----------------
+# ---------------- Fungsi Data Inti ----------------
 def load():
     """Memuat data todo dari file JSON."""
     try:
         if FILE.exists():
+            # Mengembalikan list of dictionaries
             return json.loads(FILE.read_text(encoding='utf-8'))
     except json.JSONDecodeError:
         print(f"{R}Error: File JSON rusak. Membuat ulang list kosong.{W}")
@@ -59,7 +62,7 @@ def save(data):
     except Exception as e:
         print(f"{R}Error menyimpan data: {e}{W}")
 
-# ---------------- Display Function (Aesthetics) ----------------
+# ---------------- Fungsi Tampilan (Estetika) ----------------
 def get_prio_style(pr):
     """Memberikan warna dan padding 4 karakter berdasarkan prioritas."""
     pr = pr.lower().strip()
@@ -95,22 +98,23 @@ def show(data):
         
         # 3. Status (Dibuat 6 karakter visual agar rata)
         if is_done:
-            status_text = f"{G}√ DONE{W}"   # Teks 6 karakter
+            # Menggunakan 6 karakter visual
+            status_text = f"{G}√ DONE{W}"
             task_color = DIM # Selesai, teks diredupkan
         else:
-            status_text = f"{Y} TODO {W}"  # Teks 6 karakter (diberi spasi di awal dan akhir)
+            # Menggunakan 6 karakter visual
+            status_text = f"{Y} TODO {W}"
             task_color = W # Belum, teks normal
         
-        # Output line
-        # Note: Menggunakan ljust(2) dan ljust(4) untuk menjaga jarak setelah kode warna.
-        # Karena ANSI code tidak dihitung oleh ljust, kita harus memastikan string
-        # yang diberi warna sudah memiliki panjang yang tepat.
+        # Output baris
+        # Catatan: Padding ljust() hanya bekerja pada karakter non-ANSI.
+        # Karena itu, kita pastikan isi string non-ANSI (nomor) sudah rata.
         print(f"{C_BOX}{str(i).ljust(2)}{W} | {pr_display} | {due} | {status_text} | {task_color}{t.get('task')}{W}")
 
     print(C_BOX + "══════════════════════════════════════════" + W)
 
 
-# ---------------- Main Interaction Loop ----------------
+# ---------------- Loop Interaksi Utama ----------------
 def main():
     print_banner()
     while True:
@@ -155,7 +159,13 @@ def main():
                     current = data[idx]
                     print(f"{C_BOX}Mengedit Tugas {idx+1}: '{current['task']}'{W}")
                     current["task"] = input(f"Task baru [{current['task']}]: ").strip() or current["task"]
-                    current["priority"] = input(f"Priority baru [{current['priority']}]: ").strip().lower() or current["priority"]
+                    # Pastikan prioritas yang dimasukkan valid, jika tidak, gunakan yang lama
+                    new_prio = input(f"Priority baru [{current['priority']}]: ").strip().lower()
+                    if new_prio in ["low", "med", "high"] or not new_prio:
+                        current["priority"] = new_prio or current["priority"]
+                    else:
+                        print(f"{R}Prioritas tidak valid, menggunakan prioritas lama: {current['priority']}{W}")
+                    
                     current["due"] = input(f"Due baru [{current['due']}]: ").strip() or current["due"]
                     save(data)
                     print(f"{G}Tugas {idx+1} berhasil diperbarui.{W}")
@@ -178,6 +188,7 @@ def main():
                 print(f"{C_NEON}Keluar dari EraldForge Todo. Sampai jumpa!{W}")
                 break
             else:
+                # Ini akan dipicu jika user memasukkan "5"
                 print(f"{R}Pilihan tidak dikenal. Masukkan a, t, e, d, atau q.{W}")
                 
         except EOFError:
