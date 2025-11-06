@@ -28,32 +28,34 @@ ERALD_LANG = "id"
 
 # ---------------- color palette ----------------
 THEMES = {
-    # Default: 'title' adalah Biru (\033[34m). 'desc' adalah Putih (\033[37m).
-    "default": {"num":"\033[36m","title":"\033[34m","desc":"\033[37m","accent":"\033[33m","reset":"\033[0m","bold":"\033[1m"},
-    "matrix": {"num":"\033[32m","title":"\033[32m","desc":"\033[37m","accent":"\033[92m","reset":"\033[0m","bold":"\033[1m"},
-    "cyberpunk":{"num":"\033[95m","title":"\033[96m","desc":"\033[37m","accent":"\033[93m","reset":"\033[0m","bold":"\033[1m"},
-    "solarized":{"num":"\033[33m","title":"\033[36m","desc":"\033[37m","accent":"\033[32m","reset":"\033[0m","bold":"\033[1m"}
+    # Default: 'title' adalah Biru (\033[34m). 'desc' adalah Putih (\033[37m). 'time' adalah Magenta Terang (\033[95m)
+    "default": {"num":"\033[36m","title":"\033[34m","desc":"\033[37m","accent":"\033[33m","reset":"\033[0m","bold":"\033[1m", "time":"\033[95m"},
+    "matrix": {"num":"\033[32m","title":"\033[32m","desc":"\033[37m","accent":"\033[92m","reset":"\033[0m","bold":"\033[1m", "time":"\033[95m"},
+    "cyberpunk":{"num":"\033[95m","title":"\033[96m","desc":"\033[37m","accent":"\033[93m","reset":"\033[0m","bold":"\033[1m", "time":"\033[95m"},
+    "solarized":{"num":"\033[33m","title":"\033[36m","desc":"\033[37m","accent":"\033[32m","reset":"\033[0m","bold":"\033[1m", "time":"\033[95m"}
 }
 CURRENT_THEME = "default"
 C = THEMES[CURRENT_THEME]
 
 # ---------------- Banner ASCII ----------------
+# Banner baru sesuai permintaan
 BANNER_LINES = [
-    " ____ ___ __ ____ ",
-    "/\\ _\\ /\\_ \\ /\\ \\ /\\ _\\ ",
-    "\\ \\ \\L\\_\\ _ __ __ \\//\\ \\ \\_\\ \\ \\ \\L\\_\\___ _ __ __ __ ",
-    " \\ \\ _\\L /\\'__\\/'__\\ \\ \\ \\ /'_ \\ \\ _\\/ __\\/\\'__\\/'_ \\ /'__\\ ",
-    " \\ \\ \\L\\ \\ \\ \\//\\ \L\.\_ \\_\\ \\_/\\ \L\\ \ \ \/\\ \L\\ \ \ \//\\ \L\\ \/\\ __/ ",
-    " \ \____/\\ \_\\\\ \__/.\\_\\/\\____\\ \___,_\\ \_\\ \____/\\ \_\\\\ \____ \\ \____\\",
-    " \/___/ \\/_/ \\/__/\\/_/\\/____/\\/__,_ /\\/ _/\\/___/ \\/_/ \\/___L\\ \\/____/",
-    " /\\____/ ",
-    " \\_/__/ "
+    " ____           ___      __ ____       ",
+    "/\\  _`\\       /\\_ \\    /\\ \\/\\  _`\\     ",
+    "\\ \\ \\L\\_\\ _ __  __ \\//\\ \\  \\_\\ \\ \\ \\L\\_\\___  _ __   __      __  ",
+    " \\ \\  _\\L /\\`'__\\/'__`\\ \\ \\ \\ /'_` \\ \\  _\\/ __`\\/\\`'__\\/'_ `\\ /'__`\\ ",
+    "  \\ \\ \\L\\ \\ \\ \\//\\ \\L\\.\\_ \\_\\ \\_/\ \L\\ \ \\ \\/\ \L\ \ \ \//\ \L\ \/\  __/",
+    "   \\ \____/\ \_\\\\ \__/.\_\/\____\ \___,_\ \_\ \____/\ \_\\\\ \____ \ \____\\",
+    "    \/___/  \/_/ \/__/\/_/\/____/\/__,_ /\/_/\/___/  \/_/ \/___L\ \\/____/",
+    "                                                      /\\____/  ",
+    "                                                      \\_/__/   "
 ]
 
 def colored_banner():
     """Mencetak banner dengan warna."""
     out = []
     for i, ln in enumerate(BANNER_LINES):
+        # Mempertahankan skema warna sebelumnya (Merah untuk baris atas, Biru untuk baris bawah)
         if i <= 4:
             out.append("\033[31m" + ln + C["reset"])
         else:
@@ -162,7 +164,8 @@ def run_tool_dir(tool_dir):
         subprocess.run([str(p)])
     return True
 
-# ---------------- Fallbacks ----------------
+# ---------------- Fallbacks (Dipotong untuk kejelasan kode di sini, aslinya tetap sama) ----------------
+# ... (Semua fungsi fallback tetap sama) ...
 def fallback_calculator():
     clear()
     print("== Kalkulator fallback ==")
@@ -430,6 +433,7 @@ def system_monitor():
         
     pause()
 
+
 # ---------------- UI ----------------
 def show_menu():
     """Menampilkan menu utama dengan layout yang rapi."""
@@ -443,7 +447,8 @@ def show_menu():
     print(C["accent"] + "══════════════════════════════════════════════════════════" + C["reset"])
     
     now = datetime.now().strftime("%H:%M:%S")
-    print(f"🕒 [{now}] {C['title']}{S['menu_title']}{C['reset']}")
+    # PERBAIKAN: Menggunakan C['time'] untuk warna jam
+    print(f"{C['time']}🕒 [{now}]{C['reset']} {C['title']}{S['menu_title']}{C['reset']}")
     print(C["accent"] + "──────────────────────────────────────────────" + C["reset"]) # Garis pemisah sebelum menu utama
 
     # Lebar terminal & kolom
@@ -470,7 +475,7 @@ def show_menu():
         desc = meta_desc or default_desc
         desc = shorten(desc, desc_col)
         
-        # PERBAIKAN DI SINI: Mengubah Deskripsi Tools (1-8) dari C['desc'] ke C['title']
+        # WARNA TOOLS 1-8: Judul (C['title']) untuk Judul dan Deskripsi
         print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['title']}{desc}{C['reset']}")
 
     # Tampilkan menu tambahan (U, T, S, A, 0)
@@ -483,14 +488,15 @@ def show_menu():
         ("0", "Keluar", "tutup program")
     ]
     
-    # SUDAH BENAR: Menggunakan C['title'] untuk judul dan DESKRIPSI
+    # PERBAIKAN: Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Menu Tambahan
     for code, title, desc in extras:
-        print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['title']}{desc}{C['reset']}")
+        print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
     print(C["accent"] + "══════════════════════════════════════════════════════════" + C["reset"])
     print(S["prompt"], end="")
 
 def theme_menu():
+# ... (Fungsi ini tidak berubah) ...
     """Menu untuk memilih tema."""
     global CURRENT_THEME,C
     clear(); print("=== Pilih Tema ===")
@@ -512,6 +518,7 @@ def theme_menu():
     pause()
 
 def about_menu():
+# ... (Fungsi ini tidak berubah) ...
     """Menu 'Tentang'."""
     clear()
     print(f"EraldForge {VERSION}")
@@ -520,7 +527,8 @@ def about_menu():
     print("Tujuan : Multitool Termux, aman & ethical")
     pause()
 
-# ---------------- Choice Handling ----------------
+# ---------------- Choice Handling (Dipotong untuk kejelasan kode di sini, aslinya tetap sama) ----------------
+# ... (Semua fungsi choice handling tetap sama) ...
 def handle_choice(ch):
     """Menangani pilihan menu."""
     ch=ch.strip().lower()
@@ -603,7 +611,8 @@ def handle_choice(ch):
             
     print(S["invalid"]); pause()
 
-# ---------------- Startup Animation ----------------
+# ---------------- Startup Animation (Dipotong untuk kejelasan kode di sini, aslinya tetap sama) ----------------
+# ... (Semua fungsi animasi tetap sama) ...
 def startup_anim():
     """Animasi saat program dimulai."""
     clear(); print("Starting EraldForge ...")
@@ -620,7 +629,8 @@ def startup_anim():
     
     sys.stdout.write("\n"); time.sleep(0.12)
 
-# ---------------- Main ----------------
+# ---------------- Main (Dipotong untuk kejelasan kode di sini, aslinya tetap sama) ----------------
+# ... (Fungsi main tetap sama) ...
 def main():
     """Fungsi utama program."""
     TOOLS_DIR.mkdir(parents=True, exist_ok=True)
