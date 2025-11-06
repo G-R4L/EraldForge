@@ -1,8 +1,8 @@
 {
-  "name": "Todo CLI",
-  "id": "todo",
-  "desc": "Todo list dengan priority & due-date (local JSON).",
-  "entry": "todo.py",
-  "lang": "python",
-  "security": false
+"name": "EraldForge Todo CLI",
+"id": "todo",
+"desc": "A professional and aesthetic CLI-based Todo List with priority (low/med/high) and due-date tracking. Utilizes local JSON storage.",
+"entry": "todo.py",
+"lang": "python",
+"security": false
 }
