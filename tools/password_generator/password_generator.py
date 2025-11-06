@@ -166,10 +166,12 @@ def copy_to_clipboard(password):
         proc.communicate(input=password, timeout=1)
         print(f"\n{C['G']}✅ Kata sandi berhasil disalin ke clipboard (via termux-clipboard-set).{C['X']}")
     except FileNotFoundError:
-        print(f"\n{C['R']}❌ Perintah 'termux-clipboard-set' tidak tersedia. Silakan instal 'termux-api'.{C['X']}")
+        # Ini adalah penyebab utama kegagalan
+        print(f"\n{C['R']}❌ Gagal menyalin: Perintah 'termux-clipboard-set' tidak ditemukan.{C['X']}")
+        print(f"{C['R']}Mohon instal Termux:API dengan perintah: {C['P']}pkg install termux-api{C['R']} lalu pastikan Anda memberikan izin akses.{C['X']}")
     except Exception as e:
         # Catch timeout or other general errors
-        print(f"\n{C['R']}❌ Gagal menyalin ke clipboard: {type(e).__name__}{C['X']}")
+        print(f"\n{C['R']}❌ Gagal menyalin ke clipboard: {type(e).__name__}. Coba salin manual.{C['X']}")
 
 def print_strength_analysis(entropy, length):
     """Menganalisis dan mencetak kekuatan kata sandi berdasarkan entropi."""
@@ -237,7 +239,7 @@ def setup_generation(mode):
     elif mode == '4': # Kustom
         length, use_lower, use_upper, use_digits, use_symbols, excluded_chars = get_custom_settings(default_length=length)
     else:
-        # Fallback to Kuat if invalid input (shouldn't happen with proper menu handling)
+        # Fallback to Kuat if invalid input
         pass 
         
     # Tampilkan detail final sebelum generasi
@@ -317,8 +319,16 @@ def generate_multiple_passwords_flow():
         print("\n" + C['G'] + "--- Proses Generasi (Batch) ---" + C['X'])
         generated_passwords = []
         
+        # Hitung entropi pool size sebelum loop
+        _, pool_size = generate_password(
+            length=1, # Hanya perlu panjang 1 untuk mendapatkan pool_size
+            use_lower=use_lower, use_upper=use_upper, 
+            use_digits=use_digits, use_symbols=use_symbols,
+            exclude_chars=excluded_chars
+        )
+
         for i in range(count):
-            pw, pool_size = generate_password(
+            pw, _ = generate_password(
                 length=length,
                 use_lower=use_lower, use_upper=use_upper, 
                 use_digits=use_digits, use_symbols=use_symbols,
@@ -348,15 +358,15 @@ def main_menu():
         print(C["W"] + "Menu Utama Generator Kata Sandi:" + C["X"])
         print(f"  {C['B']}1{C['X']}. {C['G']}Buat SATU Kata Sandi Kuat (Analisis Penuh)" + C['X'])
         print(f"  {C['B']}2{C['X']}. {C['P']}Mode Batch (Buat Banyak Kata Sandi Sekaligus)" + C['X'])
-        print(f"  {C['R']}9{C['X']}. {C['R']}Keluar" + C['X'])
+        print(f"  {C['R']}3{C['X']}. {C['R']}Keluar" + C['X']) # Diubah dari 9 menjadi 3
         
-        choice = input(f"\nPilihan (1/2/9): ").strip()
+        choice = input(f"\nPilihan (1/2/3): ").strip() # Diperbarui
 
         if choice == '1':
             generate_single_password_flow()
         elif choice == '2':
             generate_multiple_passwords_flow()
-        elif choice in ('9', 'exit', 'quit'):
+        elif choice in ('3', 'exit', 'quit'): # Diperbarui
             print(f"\n{C['G']}Terima kasih, EraldForge Generator Kata Sandi ditutup.{C['X']}")
             break
         else:
