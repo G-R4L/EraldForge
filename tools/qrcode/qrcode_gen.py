@@ -160,6 +160,7 @@ def get_wifi_data():
         encryption = "WPA"
         
     # Format Wi-Fi: S:<SSID>;T:<ENCRYPTION>;P:<PASSWORD>;;
+    # WOILAH NJERR
     
     if encryption == "nopass":
         qr_data = f"WIFI:S:{ssid};T:nopass;H:false;;"
