@@ -38,17 +38,17 @@ CURRENT_THEME = "default"
 C = THEMES[CURRENT_THEME]
 
 # ---------------- Banner ASCII ----------------
-# Banner baru sesuai permintaan
+# Banner baru yang sudah dirapikan
 BANNER_LINES = [
-    " ____           ___      __ ____       ",
-    "/\\  _`\\       /\\_ \\    /\\ \\/\\  _`\\     ",
-    "\\ \ \L\_\ _ __  __ \//\ \  \_\ \ \ \L\_\___  _ __   __      __  ",
-    " \ \  _\L /\\`'__\\/'__`\ \ \ \ /'_` \ \  _\\/ __`\/\\`'__\\/'_ `\ /'__`\ ",
+    " ____                 ___        __ ____        ",
+    "/\\  _`\\              /\\_ \\      /\\ \\/\\  _`\\     ",
+    "\\ \\ \\L\\_\\ _ __    __  \\//\\ \\    \\_\\ \\ \\ \\L\\_\\___  _ __    __  ",
+    " \\ \ _\\L /\\`'__\\/'__`\\  \ \ \  /'_` \ \  _\\/ __`\\/\\`'__\\/'_ `\\ /'__`\\ ",
     "  \ \ \L\ \ \ \//\ \L\.\_ \_\ \_/\ \L\ \ \ \/\ \L\ \ \ \//\ \L\ \/\  __/",
-    "   \ \____/\ \_\\\\ \__/.\_\/\____\ \___,_\ \_\ \____/\ \_\\\\ \____ \ \____\\",
+    "   \ \____/\ \_\\ \__/.\_\/\____\\ \___,_\ \_\ \____/\ \_\\ \____ \ \____\\",
     "    \/___/  \/_/ \/__/\/_/\/____/\/__,_ /\/_/\/___/  \/_/ \/___L\ \/____/",
-    "                                                      /\\____/  ",
-    "                                                      \\_/__/   "
+    "                                                          /\\____/  ",
+    "                                                          \\/_/__/   "
 ]
 
 def colored_banner():
@@ -164,8 +164,7 @@ def run_tool_dir(tool_dir):
         subprocess.run([str(p)])
     return True
 
-# ---------------- Fallbacks (Dipotong untuk kejelasan kode di sini, aslinya tetap sama) ----------------
-# ... (Semua fungsi fallback tetap sama) ...
+# ---------------- Fallbacks ----------------
 def fallback_calculator():
     clear()
     print("== Kalkulator fallback ==")
@@ -441,18 +440,25 @@ def show_menu():
     
     clear()
     
-    # Banner + tagline
+    # Banner
     print(colored_banner())
-    print("\n" + C["title"] + " " + S["tag"] + C["reset"])
+
+    # PERBAIKAN: Hitung padding untuk menengahkan tagline
+    width = term_width()
+    tag = S["tag"]
+    # Menghitung padding, diasumsikan width cukup besar
+    # (width - len(tag)) / 2
+    padding = " " * ((width - len(tag)) // 2)
+    
+    print(padding + C["title"] + S["tag"] + C["reset"])
     print(C["accent"] + "══════════════════════════════════════════════════════════" + C["reset"])
     
     now = datetime.now().strftime("%H:%M:%S")
-    # PERBAIKAN: Menggunakan C['time'] untuk warna jam
+    # Menggunakan C['time'] untuk warna jam
     print(f"{C['time']}🕒 [{now}]{C['reset']} {C['title']}{S['menu_title']}{C['reset']}")
     print(C["accent"] + "──────────────────────────────────────────────" + C["reset"]) # Garis pemisah sebelum menu utama
 
     # Lebar terminal & kolom
-    width = term_width()
     num_col = 4 # "[1] "
     name_col = 24 # Nama tool
     desc_width = width - (num_col + name_col + 5) # sisa untuk deskripsi
@@ -475,7 +481,7 @@ def show_menu():
         desc = meta_desc or default_desc
         desc = shorten(desc, desc_col)
         
-        # PERBAIKAN KRITIS: Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Tools 1-8
+        # Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Tools 1-8
         print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
     # Tampilkan menu tambahan (U, T, S, A, 0)
@@ -488,7 +494,7 @@ def show_menu():
         ("0", "Keluar", "tutup program")
     ]
     
-    # Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Menu Tambahan (Sudah benar)
+    # Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Menu Tambahan
     for code, title, desc in extras:
         print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
@@ -496,7 +502,6 @@ def show_menu():
     print(S["prompt"], end="")
 
 def theme_menu():
-# ... (Fungsi ini tidak berubah) ...
     """Menu untuk memilih tema."""
     global CURRENT_THEME,C
     clear(); print("=== Pilih Tema ===")
@@ -518,7 +523,6 @@ def theme_menu():
     pause()
 
 def about_menu():
-# ... (Fungsi ini tidak berubah) ...
     """Menu 'Tentang'."""
     clear()
     print(f"EraldForge {VERSION}")
@@ -527,8 +531,7 @@ def about_menu():
     print("Tujuan : Multitool Termux, aman & ethical")
     pause()
 
-# ---------------- Choice Handling (Dipotong untuk kejelasan kode di sini, aslinya tetap sama) ----------------
-# ... (Semua fungsi choice handling tetap sama) ...
+# ---------------- Choice Handling ----------------
 def handle_choice(ch):
     """Menangani pilihan menu."""
     ch=ch.strip().lower()
@@ -611,8 +614,7 @@ def handle_choice(ch):
             
     print(S["invalid"]); pause()
 
-# ---------------- Startup Animation (Dipotong untuk kejelasan kode di sini, aslinya tetap sama) ----------------
-# ... (Semua fungsi animasi tetap sama) ...
+# ---------------- Startup Animation ----------------
 def startup_anim():
     """Animasi saat program dimulai."""
     clear(); print("Starting EraldForge ...")
@@ -629,8 +631,7 @@ def startup_anim():
     
     sys.stdout.write("\n"); time.sleep(0.12)
 
-# ---------------- Main (Dipotong untuk kejelasan kode di sini, aslinya tetap sama) ----------------
-# ... (Fungsi main tetap sama) ...
+# ---------------- Main ----------------
 def main():
     """Fungsi utama program."""
     TOOLS_DIR.mkdir(parents=True, exist_ok=True)
