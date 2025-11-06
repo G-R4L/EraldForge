@@ -1,231 +1,257 @@
 #!/data/data/com.termux/files/usr/bin/env python3
-# EraldForge - Clipboard Manager v3.0
+# EraldForge Clipboard Manager v4.0 (Enhanced Edition)
+# Fitur: Input Manual, Pemisahan Aksi, Auto-Folder
 
-import os
-import json
-import subprocess
-import time
-from pathlib import Path
+import os, sys
 from datetime import datetime
-import textwrap
 
-# --- Path dan Konfigurasi ---
-HOME = Path.home()
-HFILE = HOME / ".eraldforge_clipboard.json"
-MAX_HISTORY = 200 # Batas maksimal item yang disimpan
-MAX_DISPLAY = 100 # Batas item yang ditampilkan di list
+# --- Konfigurasi Dasar ---
+CLIP_DIR = os.path.join(os.path.expanduser("~"), ".clipboard_manager")
+HISTORY_FILE = os.path.join(CLIP_DIR, "history.txt")
 
-# --- Color and Theme Integration ---
-def get_colors():
-    """Mengambil palet warna dari variabel lingkungan EraldForge."""
-    C = {
-        "num": "\033[36m",    # Cyan
-        "title": "\033[34m",  # Blue
-        "desc": "\033[37m",   # White/Light Gray
-        "accent": "\033[33m", # Yellow
-        "reset": "\033[0m",
-        "bold": "\033[1m",
-        "error": "\033[31m"   # Red for errors
-    }
-    # Jika program dijalankan dari EraldForge, variabel lingkungan akan disetel.
-    # Namun, karena ini adalah tool mandiri, kita pakai default aman.
-    return C
+# --- Definisi Warna ---
+R = "\033[91m"
+G = "\033[92m"
+Y = "\033[93m"
+C = "\033[96m"
+W = "\033[0m"
+BOLD = "\033[1m"
 
-C = get_colors()
+# --- Banner Erald ---
+BANNER = f"""
+{Y}···············································{W}
+{Y}:  ____ _ _       _                         _ :{W}
+{Y}: / ___| (_)_ __ | |__   ___   __ _ _ __ __| |:{W}
+{Y}:| |   | | | '_ \| '_ \ / _ \ / _` | '__/ _` |:{W}
+{Y}:| |___| | | |_) | |_) | (_) | (_| | | | (_| |:{W}
+{Y}: \____|_|_| .__/|_.__/ \___/ \__,_|_|  \__,_|:{W}
+{Y}:          |_|                                :{W}
+{Y}···············································{W}
+"""
 
-# --- Banner ASCII ---
-BANNER_LINES = [
-    "···············································",
-    ":  ____ _ _       _                         _ :",
-    ": / ___| (_)_ __ | |__   ___   __ _ _ __ __| |:",
-    ":| |   | | | '_ \| '_ \ / _ \ / _` | '__/ _` |:",
-    ":| |___| | | |_) | |_) | (_) | (_| | | | (_| |:",
-    ": \____|_|_| .__/|_.__/ \___/ \__,_|_|  \__,_|:",
-    ":          |_|                                :",
-    "···············································"
-]
+# --- Utilitas Data ---
+def ensure_directory():
+    """Memastikan folder dan file riwayat ada."""
+    if not os.path.exists(CLIP_DIR):
+        os.makedirs(CLIP_DIR)
+        print(f"{C}✅ Dibuat: Folder riwayat otomatis {CLIP_DIR}{W}")
+    if not os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, 'w') as f:
+            f.write("") # Buat file kosong
 
-def colored_banner():
-    """Mencetak banner dengan warna Accent."""
-    out = []
-    for line in BANNER_LINES:
-        if line.startswith(":") or line.startswith("·"):
-            out.append(f"{C['accent']}{line}{C['reset']}")
-        else:
-            # Mewarnai teks di dalam banner
-            out.append(f"{C['title']}{line}{C['reset']}")
-    return "\n".join(out)
-
-# --- Data Handling ---
-def load_hist():
-    """Memuat riwayat dari file JSON."""
-    if not HFILE.exists(): return []
-    try: 
-        data = json.loads(HFILE.read_text())
-        # Filter untuk memastikan data valid
-        return [item for item in data if 'text' in item and 'ts' in item]
-    except Exception: 
+def load_history():
+    """Memuat riwayat dari file."""
+    ensure_directory()
+    try:
+        with open(HISTORY_FILE, 'r') as f:
+            lines = [line.strip() for line in f if line.strip()]
+            history = []
+            for line in lines:
+                parts = line.split('::', 1)
+                if len(parts) == 2:
+                    history.append({
+                        'timestamp': parts[0].strip(),
+                        'content': parts[1].strip()
+                    })
+            return history
+    except Exception as e:
+        print(f"{R}⚠️ Error memuat riwayat: {e}{W}")
         return []
 
-def save_hist(h):
-    """Menyimpan riwayat ke file JSON, membatasi ukuran."""
-    try: 
-        # Batasi jumlah item
-        HFILE.write_text(json.dumps(h[:MAX_HISTORY], indent=2))
-    except Exception: 
-        pass
-
-# --- Termux Clipboard API Wrappers ---
-def get_clip():
-    """Mengambil teks dari clipboard Termux."""
+def save_history(history):
+    """Menyimpan riwayat ke file."""
+    ensure_directory()
     try:
-        # Menambahkan timeout agar tidak menggantung
-        out = subprocess.check_output(["termux-clipboard-get"], timeout=1).decode(errors='ignore').strip()
-        return out if out else None
-    except Exception:
-        return None
+        with open(HISTORY_FILE, 'w') as f:
+            for item in history:
+                f.write(f"{item['timestamp']} :: {item['content']}\n")
+    except Exception as e:
+        print(f"{R}⚠️ Error menyimpan riwayat: {e}{W}")
 
-def set_clip(text):
-    """Menyalin teks ke clipboard Termux."""
+def add_to_history(content):
+    """Menambahkan konten baru ke riwayat."""
+    history = load_history()
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    history.append({'timestamp': timestamp, 'content': content})
+    save_history(history)
+    print(f"{G}✅ Teks berhasil disimpan ke riwayat.{W}")
+
+# --- Fungsi Clipboard Termux API ---
+def termux_clipboard_get():
+    """Mencoba mengambil teks dari clipboard Termux."""
     try:
-        subprocess.run(["termux-clipboard-set", text], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1)
-        return True
-    except Exception:
-        return False
+        # Perintah Termux API untuk mengambil clipboard
+        result = os.popen('termux-clipboard-get').read().strip()
+        if not result:
+            return None, f"{R}Clipboard kosong.{W}"
+        return result, None
+    except Exception as e:
+        # Menangkap error jika termux-api tidak ada/gagal
+        return None, f"{R}Error: termux-api tidak tersedia atau gagal. ({e}){W}"
 
-# --- Main Logic ---
-def show_menu():
-    """Menampilkan menu utama."""
-    os.system("clear")
-    print(colored_banner())
-    print(f"{C['title']}EraldForge Clipboard Manager v3.0{C['reset']}")
-    print(f"{C['accent']}──────────────────────────────────────────────{C['reset']}")
-    
-    menu = [
-        ("1", "Ambil & Simpan", "Salin item saat ini di clipboard ke riwayat."),
-        ("2", "Tampilkan Riwayat", "Lihat 100 item terakhir yang tersimpan."),
-        ("3", "Tempel ke Clipboard", "Salin item dari riwayat ke clipboard aktif."),
-        ("4", "Cari Riwayat", "Cari teks di antara item yang tersimpan."),
-        ("0", "Keluar", "Tutup Clipboard Manager dan kembali ke menu utama.")
-    ]
-    
-    max_len = max(len(t) for _, t, _ in menu)
-    
-    for code, title, desc in menu:
-        print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{max_len}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
-        
-    print(f"{C['accent']}──────────────────────────────────────────────{C['reset']}")
-    return input(f"{C['bold']}Pilihan:{C['reset']} ").strip()
-
-def handle_save(hist):
-    """Menangani pilihan 1: Save current clipboard."""
-    print(f"{C['accent']}Mengambil dari clipboard Termux...{C['reset']}")
-    txt = get_clip()
-    
-    if not txt:
-        print(f"{C['error']}⚠️ Error: Clipboard kosong atau termux-api tidak tersedia.{C['reset']}"); time.sleep(2); return
-
-    # Cek duplikat (opsional: jika item paling atas sama)
-    if hist and hist[0]["text"] == txt:
-        print(f"{C['title']}Teks sama dengan item terakhir. Tidak disimpan.{C['reset']}"); time.sleep(2); return
-        
-    hist.insert(0, {"text": txt, "ts": int(time.time())})
-    save_hist(hist)
-    
-    preview = textwrap.shorten(txt.replace("\n", " "), width=50, placeholder="...")
-    print(f"{C['num']}✔ Berhasil menyimpan. {C['title']}Preview:{C['reset']} {preview}{C['reset']}")
-    time.sleep(2)
-
-def handle_list(hist):
-    """Menangani pilihan 2: Tampilkan riwayat."""
-    os.system("clear")
-    print(f"{C['title']}=== Riwayat Clipboard ({len(hist)} item) ==={C['reset']}")
-    
-    if not hist:
-        print(f"{C['accent']}Riwayat kosong.{C['reset']}"); time.sleep(2); return
-
-    print(f"{C['accent']}------------------------------------------------{C['reset']}")
-    for i, it in enumerate(hist[:MAX_DISPLAY], start=1):
-        ts = datetime.fromtimestamp(it.get("ts", time.time())).strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Bersihkan teks dari newline untuk tampilan rapi
-        t = it.get("text", "--- ERROR ---").replace("\n", " ")
-        preview = textwrap.shorten(t, width=os.get_terminal_size().columns - 25, placeholder="...")
-        
-        print(f"{C['num']}[{i:02}]{C['reset']} {C['desc']}{ts}{C['reset']}: {C['title']}{preview}{C['reset']}")
-        
-    print(f"{C['accent']}------------------------------------------------{C['reset']}")
-    input("Tekan Enter untuk kembali... ")
-
-def handle_paste(hist):
-    """Menangani pilihan 3: Tempel item ke clipboard."""
-    if not hist:
-        print(f"{C['error']}Riwayat kosong.{C['reset']}"); time.sleep(2); return
-        
-    idx_str = input(f"{C['bold']}Masukkan Nomor Index ke-Riwayat:{C['reset']} ").strip()
+def termux_clipboard_set(text):
+    """Mencoba menempatkan teks ke clipboard Termux."""
     try:
-        idx = int(idx_str) - 1
-        if idx < 0 or idx >= len(hist):
-            raise ValueError
+        # Perintah Termux API untuk menempatkan clipboard
+        os.system(f'echo "{text}" | termux-clipboard-set')
+        return True, None
+    except Exception as e:
+        return False, f"{R}Error: termux-api tidak tersedia atau gagal. ({e}){W}"
+
+# --- Fitur Inti Clipboard Manager ---
+
+def action_get_clipboard():
+    """Aksi 1: Ambil dari clipboard dan simpan."""
+    print(f"\n{C}Mengambil dari clipboard Termux...{W}")
+    content, error = termux_clipboard_get()
+
+    if error:
+        print(f"⚠️ {error}")
+        print(f"{Y}➡️ Coba opsi [2] untuk memasukkan teks secara manual.{W}")
+        return
+
+    # Jika berhasil, tambahkan ke riwayat
+    if content:
+        print(f"{C}✅ Berhasil mengambil konten ({len(content)} karakter).{W}")
+        add_to_history(content)
+
+def action_manual_input():
+    """Aksi 2: Masukkan teks manual dan simpan."""
+    print(f"\n{C}Simpan Manual: Masukkan teks yang ingin Anda simpan.{W}")
+    print(f"{C}──────────────────────────────────────────────{W}")
+    manual_content = input(f"{G}{BOLD}Masukkan Teks > {W}").strip()
+    
+    if manual_content:
+        add_to_history(manual_content)
+    else:
+        print(f"{Y}❌ Tidak ada teks dimasukkan. Pembatalan.{W}")
+
+def action_show_history():
+    """Aksi 3: Tampilkan riwayat."""
+    history = load_history()
+    print(f"\n{C}──────────────────────────────────────────────{W}")
+    print(f"{C} Riwayat Tersimpan ({len(history)} item terakhir){W}")
+    print(f"{C}──────────────────────────────────────────────{W}")
+    
+    if not history:
+        print(f"{Y}Riwayat masih kosong.{W}")
+        return
+
+    # Tampilkan 100 item terakhir
+    for i, item in enumerate(history[-100:], 1):
+        # Tampilkan hanya 50 karakter pertama untuk ringkasan
+        summary = item['content'][:50] + ('...' if len(item['content']) > 50 else '')
+        print(f"[{i:02}] {item['timestamp']} | {summary}")
+
+    print(f"{C}──────────────────────────────────────────────{W}")
+
+def action_set_clipboard():
+    """Aksi 4: Pilih item dari riwayat dan tempatkan ke clipboard."""
+    history = load_history()
+    action_show_history()
+    
+    if not history: return
+
+    try:
+        choice_str = input(f"{G}{BOLD}Pilih nomor item untuk ditempel (0 untuk batal) > {W}").strip()
+        choice = int(choice_str)
+        
+        if choice == 0:
+            print(f"{Y}Pembatalan operasi tempel.{W}")
+            return
+
+        # Pastikan pilihan valid dalam 100 item terakhir
+        if 1 <= choice <= len(history):
+            # Mengambil item dari posisi yang benar (indeks dari belakang)
+            selected_item = history[choice - 1]
             
-        ok = set_clip(hist[idx]["text"])
-        
-        if ok:
-            preview = textwrap.shorten(hist[idx]["text"].replace("\n", " "), width=50, placeholder="...")
-            print(f"{C['num']}✔ Berhasil disalin. {C['title']}Preview:{C['reset']} {preview}{C['reset']}")
+            # Tempel ke clipboard Termux
+            success, error = termux_clipboard_set(selected_item['content'])
+            
+            if success:
+                print(f"{G}✅ Berhasil: Item [{choice}] ditempel ke clipboard aktif.{W}")
+            else:
+                print(f"⚠️ {error}")
+                print(f"{R}Pastikan Termux:API terinstal dan berfungsi.{W}")
         else:
-            print(f"{C['error']}❌ Gagal menyalin ke clipboard Termux.{C['reset']}")
-            
+            print(f"{R}❌ Pilihan tidak valid.{W}")
+
     except ValueError:
-        print(f"{C['error']}Index tidak valid.{C['reset']}")
-        
-    time.sleep(2)
+        print(f"{R}❌ Masukkan harus berupa angka.{W}")
+    except Exception as e:
+        print(f"{R}Error: {e}{W}")
 
-def handle_search(hist):
-    """Menangani pilihan 4: Cari riwayat."""
-    os.system("clear")
-    q = input(f"{C['bold']}Query Pencarian:{C['reset']} ").strip().lower()
-    if not q: return
+def action_search_history():
+    """Aksi 5: Cari teks dalam riwayat."""
+    history = load_history()
+    if not history:
+        print(f"{Y}Riwayat masih kosong.{W}")
+        return
 
+    search_term = input(f"{G}{BOLD}Masukkan teks yang dicari > {W}").strip().lower()
+    if not search_term:
+        print(f"{Y}Tidak ada kata kunci dimasukkan.{W}")
+        return
+    
     results = []
-    for i, it in enumerate(hist, start=1):
-        if q in it.get("text", "").lower():
-            results.append((i, it))
+    for item in history:
+        if search_term in item['content'].lower():
+            results.append(item)
 
-    print(f"\n{C['title']}=== Hasil Pencarian ({len(results)} ditemukan) ==={C['reset']}")
+    print(f"\n{C}──────────────────────────────────────────────{W}")
+    print(f"{C} Hasil Pencarian ({len(results)} ditemukan){W}")
+    print(f"{C}──────────────────────────────────────────────{W}")
     
     if not results:
-        print(f"{C['accent']}Tidak ada hasil untuk '{q}'.{C['reset']}"); time.sleep(2); return
+        print(f"{Y}Tidak ada item yang cocok dengan '{search_term}'.{W}")
+        return
 
-    for i, (idx_original, it) in enumerate(results, start=1):
-        ts = datetime.fromtimestamp(it.get("ts", time.time())).strftime("%Y-%m-%d %H:%M:%S")
-        t = it.get("text", "--- ERROR ---").replace("\n", " ")
-        preview = textwrap.shorten(t, width=os.get_terminal_size().columns - 25, placeholder="...")
-        
-        # Tampilkan index original di riwayat
-        print(f"{C['num']}[{idx_original:02}]{C['reset']} {C['desc']}{ts}{C['reset']}: {C['title']}{preview}{C['reset']}")
-    
-    print(f"{C['accent']}------------------------------------------------{C['reset']}")
-    input("Tekan Enter untuk kembali... ")
+    for i, item in enumerate(results, 1):
+        summary = item['content'][:50] + ('...' if len(item['content']) > 50 else '')
+        print(f"[{i:02}] {item['timestamp']} | {summary}")
+    print(f"{C}──────────────────────────────────────────────{W}")
 
 
+# --- Loop Utama ---
 def main():
+    os.system('clear')
+    
     while True:
-        hist = load_hist()
-        choice = show_menu()
+        print(BANNER)
+        print(f"{C}EraldForge Clipboard Manager v4.0{W}")
+        print(f"{C}──────────────────────────────────────────────{W}")
+        print(f"[1] Ambil dari Clipboard - Salin item saat ini dari clipboard sistem ke riwayat.")
+        print(f"[2] Simpan Manual        - Masukkan teks secara manual ke riwayat.")
+        print(f"[3] Tampilkan Riwayat    - Lihat 100 item terakhir yang tersimpan.")
+        print(f"[4] Tempel ke Clipboard  - Salin item dari riwayat ke clipboard aktif.")
+        print(f"[5] Cari Riwayat         - Cari teks di antara item yang tersimpan.")
+        print(f"[0] Keluar               - Tutup Clipboard Manager.")
+        print(f"{C}──────────────────────────────────────────────{W}")
         
-        if choice == "1":
-            handle_save(hist)
-        elif choice == "2":
-            handle_list(hist)
-        elif choice == "3":
-            handle_paste(hist)
-        elif choice == "4":
-            handle_search(hist)
-        elif choice in ("0", "q"):
-            print(f"{C['title']}Keluar dari Clipboard Manager. Sampai jumpa!{C['reset']}"); break
-        else:
-            print(f"{C['error']}Pilihan tidak valid.{C['reset']}"); time.sleep(1)
+        try:
+            choice = input(f"{G}{BOLD}Pilihan > {W}").strip()
+            
+            if choice == '1':
+                action_get_clipboard()
+            elif choice == '2':
+                action_manual_input()
+            elif choice == '3':
+                action_show_history()
+            elif choice == '4':
+                action_set_clipboard()
+            elif choice == '5':
+                action_search_history()
+            elif choice == '0':
+                print(f"{Y}Keluar dari Clipboard Manager. Sampai jumpa!{W}")
+                break
+            else:
+                print(f"{R}❌ Pilihan tidak valid. Silakan coba lagi.{W}")
+        
+        except KeyboardInterrupt:
+            print(f"\n{Y}Keluar dari Clipboard Manager. Sampai jumpa!{W}")
+            break
+        except Exception as e:
+            print(f"{R}Error tak terduga: {e}{W}")
 
 if __name__ == "__main__":
     main()
