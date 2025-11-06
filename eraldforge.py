@@ -42,9 +42,15 @@ BANNER_LINES = [
     "/\\ _\\ /\\_ \\ /\\ \\ /\\ _\\ ",
     "\\ \\ \\L\\_\\ _ __ __ \\//\\ \\ \\_\\ \\ \\ \\L\\_\\___ _ __ __ __ ",
     " \\ \\ _\\L /\\'__\\/'__\\ \\ \\ \\ /'_ \\ \\ _\\/ __\\/\\'__\\/'_ \\ /'__\\ ",
+<<<<<<< HEAD
     " \\ \\ \\L\\ \\ \\ \\//\\ \L\.\_ \\_\\ \\_/\\ \L\\ \ \ \/\\ \L\\ \ \ \//\\ \L\\ \/\\ __/ ",
     " \ \____/\\ \_\\\\ \__/.\\_\\/\\____\\ \___,_\\ \_\\ \____/\\ \_\\\\ \____ \\ \____\\",
     " \/___/ \\/_/ \\/__/\\/_/\\/____/\\/__,_ /\\/ _/\\/___/ \\/_/ \\/___L\\ \\/____/",
+=======
+    " \\ \\ \\L\\ \\ \\ \\//\\ \\L\\.\\_ \\_\\ \\_/\\ \\L\\ \\ \\ \\/\\ \\L\\ \\ \\ \\//\\ \\L\\ \\/\\ __/ ",
+    " \\ \\____/\\ \\_\\\\ \\__/.\\_\\/\\____\\ \\___,_\\ \\_\\ \\____/\\ \\_\\\\ \\____ \\ \\____\\",
+    " \\/___/ \\/_/ \\/__/\\/_/\\/____/\\/__,_ /\\/ _/\\/___/ \\/_/ \\/___L\\ \\/____/",
+>>>>>>> ed92a79a5a740f2f36b5f7c2f92a367aaffe506d
     " /\\____/ ",
     " \\_/__/ "
 ]
@@ -162,6 +168,10 @@ def run_tool_dir(tool_dir):
     return True
 
 # ---------------- Fallbacks ----------------
+<<<<<<< HEAD
+=======
+# (Fungsi fallback tetap sama, karena tidak diminta perubahan)
+>>>>>>> ed92a79a5a740f2f36b5f7c2f92a367aaffe506d
 def fallback_calculator():
     clear()
     print("== Kalkulator fallback ==")
@@ -421,12 +431,23 @@ def system_monitor():
                     found_net = True
             
             if not found_net:
+<<<<<<< HEAD
                     print(" - Tidak ada interface network yang aktif (IPv4)")
+=======
+                 print(" - Tidak ada interface network yang aktif (IPv4)")
+>>>>>>> ed92a79a5a740f2f36b5f7c2f92a367aaffe506d
         else:
             print(" - Info network tidak tersedia (psutil tidak tersedia)\n")
     except Exception:
         print(" - Info network tidak tersedia\n")
         
+<<<<<<< HEAD
+=======
+    # Top 5 process by CPU (Dihapus karena membutuhkan izin)
+    # print("Proses teratas (by CPU):")
+    # print(" - Tidak dapat menampilkan proses karena batasan sistem.\n")
+    
+>>>>>>> ed92a79a5a740f2f36b5f7c2f92a367aaffe506d
     pause()
 
 # ---------------- UI ----------------
@@ -484,7 +505,11 @@ def show_menu():
     
     # PERBAIKAN PEWARNAAN DI SINI
     for code, title, desc in extras:
+<<<<<<< HEAD
         # Menggunakan C['num'] untuk kode (U, T, S, A, 0) dan C['title'] untuk judul (SAMA PERSIS DENGAN MENU DI ATAS)
+=======
+        # Menggunakan C['num'] untuk kode (U, T, S, A, 0) dan C['title'] untuk judul
+>>>>>>> ed92a79a5a740f2f36b5f7c2f92a367aaffe506d
         print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
     print(C["accent"] + "══════════════════════════════════════════════════════════" + C["reset"])
@@ -632,4 +657,8 @@ def main():
         handle_choice(ch)
 
 if __name__=="__main__":
+<<<<<<< HEAD
     main()
+=======
+    main()
+>>>>>>> ed92a79a5a740f2f36b5f7c2f92a367aaffe506d
