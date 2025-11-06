@@ -1,7 +1,7 @@
 {
   "name": "Password Generator",
   "id": "password_generator",
-  "desc": "Buat password acak kuat: length, angka, simbol, huruf besar/kecil.",
+  "desc": "Buat kata sandi acak kuat: Kustomisasi panjang, angka, simbol, huruf besar/kecil, dan pengecualian karakter.",
   "entry": "password_generator.py",
   "lang": "python",
   "security": false
