@@ -1,617 +1,271 @@
 #!/data/data/com.termux/files/usr/bin/env python3
 """
-EraldForge v2.2 — Advanced Termux Multi-Tool Launcher (final)
+EraldForge v2.3 — Launcher (ID-only)
 By Gerald (G-R4L)
+Updated: animasi loading, menu System Monitor terpisah, info lengkap
 """
 
-import os
-import sys
-import json
-import subprocess
-import socket
-import time
-import platform
+import os, sys, json, subprocess, socket, time, platform
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# optional psutil; not required (launcher toleran jika psutil tak terpasang)
+# optional psutil
 try:
     import psutil
 except Exception:
     psutil = None
 
-# --- Paths & persistent config files ---
 BASE = Path(__file__).resolve().parent
 TOOLS_DIR = BASE / "tools"
-LANG_CFG = Path.home() / ".eraldforge_lang.cfg"
 CONSENT_LOG = Path.home() / ".eraldforge_consent.log"
-VERSION = "2.2"
+VERSION = "2.3"
+ERALD_LANG = "id"   # fixed Indonesian
 
-# --- Runtime language (launcher will set this later via load_lang()) ---
-# default value (will be overwritten by load_lang() call)
-LANG = os.environ.get("ERALDFORGE_LANG", "id")
-
-# --- Terminal color palette (simple) ---
-COL = {
-    "red": "\033[31m",
-    "blue": "\033[34m",
-    "cyan": "\033[36m",
-    "yellow": "\033[33m",
-    "green": "\033[32m",
-    "white": "\033[37m",
-    "bold": "\033[1m",
-    "reset": "\033[0m"
+# --- color palettes (themes) ---
+THEMES = {
+    "default": {"num":"\033[36m","title":"\033[34m","desc":"\033[37m","accent":"\033[33m","reset":"\033[0m","bold":"\033[1m"},
+    "matrix":  {"num":"\033[32m","title":"\033[32m","desc":"\033[37m","accent":"\033[92m","reset":"\033[0m","bold":"\033[1m"},
+    "cyberpunk":{"num":"\033[95m","title":"\033[96m","desc":"\033[37m","accent":"\033[93m","reset":"\033[0m","bold":"\033[1m"},
+    "solarized":{"num":"\033[33m","title":"\033[36m","desc":"\033[37m","accent":"\033[32m","reset":"\033[0m","bold":"\033[1m"}
 }
+CURRENT_THEME = "default"
+C = THEMES[CURRENT_THEME]
 
-# --- Helper: run python script and pass ERALDFORGE_LANG to its env ---
-def run_python_with_lang(script_path, extra_env=None):
-    """
-    Run a Python script at script_path while ensuring ERALDFORGE_LANG is set
-    in the child's environment. extra_env (dict) merges into env.
-    """
-    env = os.environ.copy()
-    # ensure the current launcher LANG is passed to children
-    env["ERALDFORGE_LANG"] = str(LANG)
-    if extra_env:
-        env.update(extra_env)
-    # Use same python interpreter as launcher
-    return subprocess.run([sys.executable, str(script_path)], env=env)
-
-# --- Helper: run arbitrary executable with launcher lang in env ---
-def run_command_with_lang(cmd_list, extra_env=None, cwd=None):
-    env = os.environ.copy()
-    env["ERALDFORGE_LANG"] = str(LANG)
-    if extra_env:
-        env.update(extra_env)
-    return subprocess.run(cmd_list, env=env, cwd=cwd)
-
-# ---------------- Colors / Theme ----------------
-COL = {
-    "red": "\033[31m",
-    "blue": "\033[34m",
-    "cyan": "\033[36m",
-    "yellow": "\033[33m",
-    "green": "\033[32m",
-    "white": "\033[37m",
-    "bold": "\033[1m",
-    "reset": "\033[0m"
-}
-
-# ---------------- Banner ASCII (your art) ----------------
+# --- Banner ASCII ---
 BANNER_LINES = [
 " ____                   ___       __  ____                               ",
 "/\\  _`\\                /\\_ \\     /\\ \\ /\\  _`\\                            ",
 "\\ \\ \\L\\_\\  _ __    __  \\//\\ \\    \\_\\ \\ \\ \\L\\_\\___   _ __    __      __   ",
 " \\ \\  _\\L /\\`'__\\/\'__`\\  \\ \\ \\   /'_` \\ \\  _\\/ __`\\/\\`'__\\/'_ `\\  /'__`\\ ",
 "  \\ \\ \\L\\ \\ \\ \\//\\ \\L\\.\\_ \\_\\ \\_/\\ \\L\\ \\ \\ \\/\\ \\L\\ \\ \\ \\//\\ \\L\\ \\/\\  __/ ",
-"   \\ \\____/\\ \\_\\\\ \\__/.\\_\\/\\" "\\____\\ \\___,_\\ \\_\\ \\____/\\ \\_\\\\ \\____ \\ \\____\\",
+"   \\ \\____/\\ \\_\\\\ \\__/.\\_\\/\\____\\ \\___,_\\ \\_\\ \\____/\\ \\_\\\\ \\____ \\ \\____\\",
 "    \\/___/  \\/_/ \\/__/\\/_/\\/____/\\/__,_ /\\/ _/\\/___/  \\/_/ \\/___L\\ \\/____/",
 "                                                            /\\____/      ",
 "                                                            \\_/__/       "
 ]
-# Note: the ascii has some backslashes and quotes - keep raw-like content. We'll color lines: top 5 as red (Erald), last 4 as blue (Forge region)
 
 def colored_banner():
     out = []
-    # choose split: lines 0-4 = Erald (red), rest = Forge (blue)
     for i, ln in enumerate(BANNER_LINES):
         if i <= 4:
-            out.append(COL["red"] + ln + COL["reset"])
+            out.append("\033[31m" + ln + C["reset"])  # Erald = red
         else:
-            out.append(COL["blue"] + ln + COL["reset"])
+            out.append("\033[34m" + ln + C["reset"])  # Forge = blue
     return "\n".join(out)
 
-# ---------------- Translations ----------------
-STR = {
-    "id": {
-        "tag": "✦ Ethical • Modular • Termux-Native ✦",
-        "menu_title": "EraldForge Main Menu",
-        "prompt": "Pilih nomor atau huruf: ",
-        "update": "Periksa update (git pull)",
-        "theme": "Ganti tema",
-        "lang": "Ganti bahasa",
-        "about": "Tentang EraldForge",
-        "exit": "Keluar",
-        "no_tools": "Tidak ada tool ditemukan di folder 'tools/'.",
-        "press": "Tekan Enter untuk kembali...",
-        "consent_title": "=== Persetujuan wajib untuk fitur keamanan ===",
-        "consent_prompt": "Ketik 'yes' untuk melanjutkan: ",
-        "consent_denied": "Dibatalkan oleh pengguna.",
-        "invalid": "Pilihan tidak valid.",
-        "ok_update": "✔ Update selesai!",
-        "no_update": "Tidak ada update baru."
-    },
-    "en": {
-        "tag": "✦ Ethical • Modular • Termux-Native ✦",
-        "menu_title": "EraldForge Main Menu",
-        "prompt": "Select number or letter: ",
-        "update": "Check for updates (git pull)",
-        "theme": "Change theme",
-        "lang": "Change language",
-        "about": "About EraldForge",
-        "exit": "Exit",
-        "no_tools": "No tools found in 'tools/' folder.",
-        "press": "Press Enter to return...",
-        "consent_title": "=== Required consent for security features ===",
-        "consent_prompt": "Type 'yes' to continue: ",
-        "consent_denied": "Canceled by user.",
-        "invalid": "Invalid choice.",
-        "ok_update": "✔ Update complete!",
-        "no_update": "No new updates."
-    }
+# ---------------- translations (ID only) ----------------
+S = {
+    "tag": "✦ Ethical • Modular • Termux-Native ✦",
+    "menu_title": "EraldForge Main Menu",
+    "prompt": "Pilih nomor atau huruf: ",
+    "update_ok": "✔ Update selesai!",
+    "update_none": "Tidak ada update baru.",
+    "consent_title": "=== Persetujuan wajib untuk fitur keamanan ===",
+    "consent_prompt": "Ketik 'yes' untuk lanjut: ",
+    "consent_denied": "Dibatalkan oleh pengguna.",
+    "press": "Tekan Enter untuk kembali...",
+    "invalid": "Pilihan tidak valid."
 }
 
-# load language (or ask once)
-def load_lang():
-    if LANG_CFG.exists():
-        v = LANG_CFG.read_text().strip()
-        if v in STR:
-            return v
-    # ask once
-    print("Select language / Pilih bahasa:")
-    print("1) Bahasa Indonesia")
-    print("2) English")
-    ch = input("Choice [1/2]: ").strip()
-    lang = "en" if ch == "2" else "id"
-    try:
-        LANG_CFG.write_text(lang)
-    except Exception:
-        pass
-    return lang
-
-LANG = load_lang()
-S = STR[LANG]
-
-# ---------------- Utilities ----------------
-def clear():
-    os.system("clear" if os.name != "nt" else "cls")
-
+# ---------------- helpers ----------------
+def clear(): os.system("clear" if os.name!="nt" else "cls")
 def pause(msg=None):
-    if msg is None:
-        msg = S["press"]
-    try:
-        input(msg)
-    except Exception:
-        pass
+    if msg is None: msg = S["press"]
+    try: input(msg)
+    except: pass
 
 def save_consent(action, target=None):
     try:
-        with open(CONSENT_LOG, "a") as f:
+        with open(CONSENT_LOG,"a") as f:
             f.write(f"{datetime.utcnow().isoformat()} | {action} | target={target}\n")
-    except Exception:
-        pass
+    except: pass
 
-# ---------------- Tool detection / description (language-aware) ----------------
-def list_tools():
-    res = []
-    if not TOOLS_DIR.exists():
-        return res
-    for d in sorted(TOOLS_DIR.iterdir()):
-        if not d.is_dir(): continue
-        meta = d / "meta.json"
-        name = d.name
-        desc = ""
-        entry = None
-        sec = False
-        if meta.exists():
-            try:
-                j = json.loads(meta.read_text())
-                name = j.get("name", name)
-                # prefer language-specific description if available
-                if LANG == "en":
-                    desc = j.get("desc_en") or j.get("desc") or ""
-                else:
-                    desc = j.get("desc") or j.get("desc_id") or ""
-                entry = j.get("entry")
-                sec = bool(j.get("security", False))
-            except Exception:
-                pass
-        res.append({"id": d.name, "name": name, "desc": desc, "entry": entry, "security": sec, "dir": d})
-    return res
+def run_python(script_path):
+    env = os.environ.copy()
+    env["ERALDFORGE_LANG"] = ERALD_LANG
+    return subprocess.run([sys.executable,str(script_path)], env=env)
 
-def find_tool_entry(tool_dir):
-    # return entry script filename if present (from meta or default guess)
+def run_tool_dir(tool_dir):
     meta = tool_dir / "meta.json"
+    entry = None
     if meta.exists():
         try:
             j = json.loads(meta.read_text())
-            if j.get("entry"):
-                return j.get("entry")
-        except Exception:
+            entry = j.get("entry")
+        except:
             pass
-    # try defaults
-    for candidate in ("main.py", "run.py", "start.py", f"{tool_dir.name}.py"):
-        if (tool_dir / candidate).exists():
-            return candidate
-    return None
-
-def run_tool_dir(tool_dir):
-    entry = find_tool_entry(tool_dir)
     if not entry:
-        return False
-    path = tool_dir / entry
-    if not path.exists():
-        return False
-    subprocess.run([sys.executable, str(path)])
+        for c in ("main.py","run.py","start.py", f"{tool_dir.name}.py"):
+            if (tool_dir / c).exists(): entry=c; break
+    if not entry: return False
+    p = tool_dir / entry
+    if p.suffix==".py": run_python(p)
+    else: subprocess.run([str(p)])
     return True
 
-# ---------------- Built-in safe fallbacks ----------------
-def builtin_portscanner():
-    clear()
-    print("=== Port Scanner (fallback, safe TCP connect) ===")
-    tgt = input("Target (IP/host): ").strip()
-    if not tgt:
-        print("No target.")
-        pause(); return
-    rng = input("Range (e.g. 20-1024) [1-1024]: ").strip() or "1-1024"
-    try:
-        a,b = rng.split("-"); a=int(a); b=int(b)
-    except Exception:
-        a,b = 1,1024
-    print(f"Scanning {tgt} ports {a}-{b} ... (Ctrl-C to stop)")
-    open_ports = []
-    for p in range(a, b+1):
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(0.5)
-            if s.connect_ex((tgt, p)) == 0:
-                open_ports.append(p)
-            s.close()
-        except KeyboardInterrupt:
-            print("Cancelled by user.")
-            break
-        except Exception:
-            pass
-    if open_ports:
-        print("Open ports:", ", ".join(map(str, open_ports)))
-    else:
-        print("No open ports found in scanned range (or host blocked).")
-    pause()
-
-def builtin_network_info():
-    clear()
-    print("=== Network Info (fallback) ===")
-    # local outbound IP
-    ip = "N/A"
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]; s.close()
-    except Exception:
-        try:
-            ip = socket.gethostbyname(socket.gethostname())
-        except Exception:
-            ip = "N/A"
-    print("Local IP:", ip)
-    # gateway via ip route
-    gw = "N/A"
-    try:
-        out = subprocess.check_output(["ip", "route"], stderr=subprocess.DEVNULL).decode(errors="ignore")
-        for L in out.splitlines():
-            if L.startswith("default"):
-                parts = L.split()
-                if "via" in parts:
-                    gw = parts[parts.index("via")+1]
-                break
-    except Exception:
-        pass
-    print("Gateway:", gw)
-    # DNS
-    dns = []
-    try:
-        with open("/etc/resolv.conf","r") as f:
-            for ln in f:
-                ln = ln.strip()
-                if ln.startswith("nameserver"):
-                    dns.append(ln.split()[1])
-    except Exception:
-        pass
-    print("DNS:", ", ".join(dns) if dns else "N/A")
-    # try termux-wifi-connectioninfo
-    try:
-        out = subprocess.check_output(["termux-wifi-connectioninfo"], stderr=subprocess.DEVNULL).decode(errors="ignore")
-        print("\ntermux-wifi-connectioninfo:")
-        print(out)
-    except Exception:
-        print("\nSSID / Wi-Fi details: not available (termux-api required)")
-    pause()
-
-def builtin_password_generator():
-    clear()
-    print("=== Password Generator (fallback) ===")
-    try:
-        n = int(input("Length [12]: ").strip() or "12")
-    except Exception:
-        n = 12
-    import secrets, string
-    chars = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
-    pw = "".join(secrets.choice(chars) for _ in range(n))
-    print("\nGenerated password:\n", pw)
-    # try copy to termux clipboard
-    try:
-        subprocess.run(["termux-clipboard-set", pw], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print("(Copied to clipboard)")
-    except Exception:
-        pass
-    pause()
-
-def builtin_qrcode():
-    clear()
-    print("=== QR Code Generator (fallback) ===")
-    txt = input("Text or URL: ").strip()
-    if not txt:
-        print("No input."); pause(); return
-    # try qrcode lib
-    try:
-        import qrcode
-        img = qrcode.make(txt)
-        fname = BASE / f"qrcode_{int(time.time())}.png"
-        img.save(str(fname))
-        print("Saved PNG:", fname)
-    except Exception:
-        print("qrcode library not installed. Install with: pip install qrcode pillow")
-        print("Fallback display (raw text):")
-        print(txt)
-    pause()
-
-# ---------------- Menu and runner ----------------
-MENU_LIST = [
-    ("Port Scanner", "Pemindai port cepat berbasis socket", "portscan"),
-    ("IP Tracker", "Melacak IP target (fitur sensitif)", "iptracker"),
-    ("File Explorer", "Jelajahi file & direktori lokal", "file_explorer"),
-    ("System Monitor", "Cek CPU, RAM, dan penyimpanan", "system_monitor"),
-    ("Network Info", "Menampilkan detail koneksi", "network_info"),
-    ("Todo CLI", "Todo list sederhana (lokal file)", "todo"),
-    ("Password Generator", "Buat password acak & aman", "password_generator"),
-    ("QR Code Generator", "Buat QR dari teks/URL (simpan PNG)", "qrcode_generator"),
+# ---------------- menu items ----------------
+MENU_LIST=[
+    ("calculator","Kalkulator"),
+    ("clipboard","Clipboard"),
+    ("file_explorer","Jelajahi file"),
+    ("port_scanner","Port scanner"),
+    ("todo","Todo list"),
+    ("wifi_info","Info Wi-Fi")
 ]
 
-def show_menu():
-    clear()
-    print(colored_banner())
-    print("\n" + COL["cyan"] + "        " + S["tag"] + COL["reset"])
-    print(COL["yellow"] + "══════════════════════════════════════════════════════════" + COL["reset"])
-    now = datetime.now().strftime("%H:%M:%S")
-    print(f"🕒 [{now}]  {S['menu_title']}")
-    print(COL["yellow"] + "──────────────────────────────────────────────" + COL["reset"])
-    tools = list_tools()
-    # map displayed menu to available items: always show 1..8 fixed but prefer descriptions from tools if present
-    for idx, (title_id, default_desc, tid) in enumerate(MENU_LIST, start=1):
-        # try find tool
-        tmeta = next((t for t in tools if t["id"] == tid), None)
-        desc = default_desc
-        if tmeta:
-            if LANG == "en":
-                desc = tmeta.get("desc") or tmeta.get("desc_en") or desc
-            else:
-                desc = tmeta.get("desc") or tmeta.get("desc_id") or desc
-            title = tmeta.get("name") or title_id
-        else:
-            title = title_id
-        print(f"[{idx}] {title:<20} - {desc}")
-    print(COL["yellow"] + "──────────────────────────────────────────────" + COL["reset"])
-    print(f"[U] {S['update']}")
-    print(f"[T] {S['theme']}")
-    print(f"[L] {S['lang']}")
-    print(f"[A] {S['about']}")
-    print(f"[0] {S['exit']}")
-    print(COL["yellow"] + "══════════════════════════════════════════════════════════" + COL["reset"])
-
-def change_language():
-    global LANG, S
-    print("1) Bahasa Indonesia")
-    print("2) English")
-    c = input("Choice [1/2]: ").strip()
-    LANG = "en" if c == "2" else "id"
-    S = STR[LANG]
-    try:
-        LANG_CFG.write_text(LANG)
-    except Exception:
-        pass
-    print("Language saved.")
-    pause()
-
-def about_show():
-    clear()
-    if LANG == "en":
-        print(f"EraldForge {VERSION}")
-        print("Developer : Gerald (G-R4L)")
-        print("Repo      : https://github.com/G-R4L/EraldForge")
-        print("Purpose   : Termux Multi-Tool Launcher for ethical testing & automation")
-    else:
-        print(f"EraldForge {VERSION}")
-        print("Pengembang : Gerald (G-R4L)")
-        print("Repo       : https://github.com/G-R4L/EraldForge")
-        print("Tujuan     : Launcher multitool Termux untuk pengujian ethical & otomasi")
-    pause()
-
-def attempt_run_menu_item(index):
-    # index 0-based
-    _, _, tid = MENU_LIST[index]
-    # check tool folder first
-    td = TOOLS_DIR / tid
-    if td.exists() and td.is_dir():
-        entry = find_tool_entry(td)
-        meta = td / "meta.json"
-        security = False
-        desc = tid
-        if meta.exists():
-            try:
-                j = json.loads(meta.read_text())
-                security = bool(j.get("security", False))
-                desc = j.get("desc") or j.get("desc_en") or desc
-            except Exception:
-                pass
-        if security:
-            print(S["consent_title"])
-            print(desc)
-            tgt = input("Target (IP/domain) or leave blank: ").strip() or None
-            ok = input(S["consent_prompt"]).strip().lower() == "yes"
-            if not ok:
-                print(S["consent_denied"]); pause(); return
-            save_consent(desc, tgt)
-            if tgt:
-                os.environ["ERALDFORGE_TARGET"] = tgt
-        # run
-        if entry:
-            run_ok = run_tool_dir(td)
-            if not run_ok:
-                print("Failed to run tool entry.")
-                pause()
-            return
-    # if external missing, run fallback per tid
-    if tid == "portscan":
-        builtin_portscanner()
-    elif tid == "network_info":
-        builtin_network_info()
-    elif tid == "system_monitor":
-        # show small system monitor
-        clear()
-        print("=== System Monitor (fallback) ===")
-        if psutil:
-            try:
-                cpu = psutil.cpu_percent(interval=1)
-                mem = psutil.virtual_memory()
-                print(f"CPU: {cpu}%")
-                print(f"RAM: {round(mem.used/1024/1024)}MB / {round(mem.total/1024/1024)}MB ({mem.percent}%)")
-            except Exception as e:
-                print("psutil error:", e)
-        else:
-            print("psutil not installed. Install with: pip install psutil")
-        pause()
-    elif tid == "password_generator":
-        builtin_password_generator()
-    elif tid == "qrcode_generator":
-        builtin_qrcode()
-    elif tid == "file_explorer":
-        # try to run external else run simple explorer fallback
-        builtin_file_explorer()
-    elif tid == "iptracker":
-        builtin_ip_tracker()
-    elif tid == "todo":
-        builtin_todo()
-    else:
-        print("No fallback implemented for this feature yet.")
-        pause()
-
-# Provide minimal builtins for other menu items referenced
-def builtin_file_explorer():
-    clear()
-    print("=== File Explorer (fallback) ===")
-    cwd = Path.home()
-    while True:
-        print("\nCurrent:", cwd)
-        items = list(sorted(cwd.iterdir()))
-        for i, it in enumerate(items, start=1):
-            print(f"{i}. {it.name}{'/' if it.is_dir() else ''}")
-        print("u. up  q. quit")
-        ch = input("Choice: ").strip()
-        if ch == "q": break
-        if ch == "u":
-            cwd = cwd.parent; continue
+def get_tool_display(tool_id):
+    td=TOOLS_DIR/tool_id
+    name=tool_id; desc=""
+    if td.exists() and (td/"meta.json").exists():
         try:
-            ix = int(ch)-1
-            it = items[ix]
-            if it.is_dir():
-                cwd = it
-            else:
-                try:
-                    print(it.open('r', errors="replace").read(4096))
-                except Exception as e:
-                    print("Cannot open file:", e)
-        except Exception:
-            print("Unknown choice.")
+            j=json.loads((td/"meta.json").read_text())
+            name=j.get("name",tool_id)
+            desc=j.get("desc") or j.get("desc_id") or ""
+        except: pass
+    if not desc:
+        for k,d in MENU_LIST:
+            if k==tool_id: desc=d; break
+    return name, desc
+
+# ---------------- fallback tools ----------------
+def fallback_calculator():
+    clear(); print("== Kalkulator ==")
+    expr=input("Masukkan ekspresi: ")
+    try: safe={"__builtins__":None}; res=eval(expr,safe,{}); print("Hasil:",res)
+    except Exception as e: print("Error:", e)
     pause()
 
-def builtin_ip_tracker():
-    clear()
-    print("=== IP Tracker (fallback) ===")
-    tgt = input("IP/domain: ").strip()
-    if not tgt:
-        pause(); return
-    # try ipinfo.io
-    try:
-        p = subprocess.run(["curl","-s", f"https://ipinfo.io/{tgt}/json"], capture_output=True, text=True, timeout=8)
-        if p.returncode == 0 and p.stdout:
-            print(p.stdout)
-        else:
-            print("Lookup failed; try 'nslookup' or 'dig'")
-    except Exception as e:
-        print("Error:", e)
+def fallback_clipboard():
+    clear(); print("== Clipboard ==")
+    try: out=subprocess.check_output(["termux-clipboard-get"],stderr=subprocess.DEVNULL).decode(errors="ignore"); print(out[:1000])
+    except: print("termux-api tidak tersedia.")
     pause()
 
-def builtin_todo():
-    TF = Path.home() / ".eraldforge_todo.json"
-    def loadt(): 
+def fallback_todo():
+    TF=Path.home()/".eraldforge_todo.json"
+    def load(): 
         try: return json.loads(TF.read_text())
         except: return []
-    def savet(x):
-        try: TF.write_text(json.dumps(x, indent=2))
+    def save(x): 
+        try: TF.write_text(json.dumps(x,indent=2))
         except: pass
     while True:
-        items = loadt()
-        clear(); print("=== Todo ===")
+        clear(); items=load(); print("=== Todo ===")
         for i,it in enumerate(items): print(f"{i}. [{'x' if it.get('done') else ' '}] {it.get('task')}")
         print("a add, t toggle, d del, q quit")
-        c = input("Choice: ").strip().lower()
-        if c == "q": break
-        if c == "a":
-            t = input("Task: ").strip()
-            if t: items.append({"task":t,"done":False}); savet(items)
-        elif c == "t":
-            try: ix = int(input("Index: ").strip()); items[ix]['done'] = not items[ix].get('done', False); savet(items)
-            except: print("Invalid")
-        elif c == "d":
-            try: ix = int(input("Index: ").strip()); items.pop(ix); savet(items)
-            except: print("Invalid")
+        c=input("Pilihan: ").strip().lower()
+        if c=="q": break
+        if c=="a": t=input("Task: "); items.append({"task":t,"done":False}); save(items)
+        if c=="t": 
+            try: ix=int(input("Index: ")); items[ix]['done']=not items[ix].get('done',False); save(items)
+            except: pass
+        if c=="d": 
+            try: ix=int(input("Index: ")); items.pop(ix); save(items)
+            except: pass
     pause()
 
-# ---------------- Main loop ----------------
-def main():
-    # ensure tools dir exists
-    TOOLS_DIR.mkdir(parents=True, exist_ok=True)
-
-    # quick startup animation
+# ---------------- system monitor baru ----------------
+def system_monitor():
     clear()
-    for l in ("[BOOT] Initializing EraldForge...", "[BOOT] Scanning tools...", "[OK] Ready."):
-        print(l); time.sleep(0.2)
-    time.sleep(0.15)
+    print("=== System Monitor ===")
+    if not psutil: print("psutil belum terpasang (pip install psutil)"); pause(); return
+    try:
+        # CPU
+        cpu_all=psutil.cpu_percent(interval=1)
+        cpu_per_core=psutil.cpu_percent(interval=0.5, percpu=True)
+        print(f"CPU Total   : {cpu_all}%")
+        for i,p in enumerate(cpu_per_core): print(f"CPU Core {i} : {p}%")
+        # RAM
+        mem=psutil.virtual_memory()
+        print(f"RAM Used    : {round(mem.used/1024/1024)}MB / {round(mem.total/1024/1024)}MB ({mem.percent}%)")
+        # Disk
+        disk=psutil.disk_usage("/")
+        print(f"Disk Used   : {round(disk.used/1024/1024/1024,1)}GB / {round(disk.total/1024/1024/1024,1)}GB ({disk.percent}%)")
+        # Battery
+        try: bt=psutil.sensors_battery(); print(f"Battery     : {bt.percent}% {'(Charging)' if bt.power_plugged else ''}" if bt else "Battery     : N/A")
+        except: pass
+        # Uptime
+        uptime_sec=time.time()-psutil.boot_time()
+        print("Uptime      :", str(timedelta(seconds=int(uptime_sec))))
+        # Network
+        try:
+            net=psutil.net_io_counters()
+            print(f"Network TX  : {round(net.bytes_sent/1024/1024,2)} MB")
+            print(f"Network RX  : {round(net.bytes_recv/1024/1024,2)} MB")
+        except: pass
+    except Exception as e: print("Error:",e)
+    pause()
 
+# ---------------- display menu ----------------
+def show_main_menu():
+    clear(); print(colored_banner())
+    print("\n"+C["title"]+"    "+S["tag"]+C["reset"])
+    print(C["accent"]+"══════════════════════════════════════════════════════════"+C["reset"])
+    now=datetime.now().strftime("%H:%M:%S")
+    print(f"🕒 [{now}]  {C['title']}{S['menu_title']}{C['reset']}")
+    print(C["accent"]+"──────────────────────────────────────────────"+C["reset"])
+    for i,(tid,default_desc) in enumerate(MENU_LIST,start=1):
+        title,desc=get_tool_display(tid)
+        if len(desc)>25: desc=desc[:22]+"..."
+        print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<18}{C['reset']} - {C['desc']}{desc}{C['reset']}")
+    print(C["accent"]+"──────────────────────────────────────────────"+C["reset"])
+    print(f"{C['num']}[U]{C['reset']} Update GitHub")
+    print(f"{C['num']}[T]{C['reset']} Tema")
+    print(f"{C['num']}[S]{C['reset']} System Monitor")
+    print(f"{C['num']}[A]{C['reset']} Tentang")
+    print(f"{C['num']}[0]{C['reset']} Keluar")
+    print(C["accent"]+"══════════════════════════════════════════════════════════"+C["reset"])
+
+def theme_submenu():
+    global CURRENT_THEME, C
+    clear(); print("=== Tema ===")
+    names=list(THEMES.keys())
+    for i,n in enumerate(names,start=1): print(f"[{i}] {n}")
+    print("[B] Kembali")
+    ch=input("Pilih: ").strip().lower()
+    if ch=="b": return
+    try: idx=int(ch)-1
+    except: idx=-1
+    if 0<=idx<len(names):
+        CURRENT_THEME=names[idx]; C=THEMES[CURRENT_THEME]; print("Tema diganti:",CURRENT_THEME)
+    else: print("Pilihan tidak valid.")
+    pause()
+
+def about_menu():
+    clear(); print(f"EraldForge {VERSION}\nDeveloper: Gerald (G-R4L)\nRepo: https://github.com/G-R4L/EraldForge"); pause()
+
+# ---------------- main loop ----------------
+def handle_choice(choice):
+    choice=choice.strip().lower()
+    if not choice: return
+    if choice in ("0","q","exit"): print("Bye."); sys.exit(0)
+    if choice=="u":
+        try: subprocess.run(["git","pull"],cwd=str(BASE))
+        except: pass; print("Update selesai.")
+        pause(); return
+    if choice=="t": theme_submenu(); return
+    if choice=="s": system_monitor(); return
+    if choice=="a": about_menu(); return
+    if choice.isdigit():
+        n=int(choice)
+        if 1<=n<=len(MENU_LIST):
+            tid=MENU_LIST[n-1][0]; td=TOOLS_DIR/tid
+            # fallback tools
+            if tid=="calculator": fallback_calculator(); return
+            if tid=="clipboard": fallback_clipboard(); return
+            if tid=="todo": fallback_todo(); return
+    print(S["invalid"]); pause()
+
+def main():
+    TOOLS_DIR.mkdir(parents=True,exist_ok=True)
+    # --- animasi booting ---
+    clear()
+    boot_msgs=["[BOOT] Initializing EraldForge...","[BOOT] Loading modules...","[BOOT] Ready."]
+    for msg in boot_msgs: print(msg); time.sleep(0.3)
     while True:
-        show_menu()
-        choice = input("\n" + S["prompt"]).strip().lower()
-        if not choice:
-            continue
-        if choice in ("0","q","exit"):
-            print("Bye.")
-            break
-        if choice == "u":
-            # git pull
-            try:
-                subprocess.run(["git","--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                p = subprocess.run(["git","pull"], cwd=str(BASE))
-                if p.returncode == 0:
-                    print(S["ok_update"])
-                else:
-                    print(S["no_update"])
-            except Exception as e:
-                print("git error:", e)
-            pause(); continue
-        if choice == "t":
-            print("Theme switching not implemented beyond default.")
-            pause(); continue
-        if choice == "l":
-            change_language(); continue
-        if choice == "a":
-            about_show(); continue
-        # numeric 1..8
-        if choice.isdigit():
-            n = int(choice)
-            if 1 <= n <= len(MENU_LIST):
-                attempt_run_menu_item(n-1)
-                continue
-        print(S["invalid"])
-        pause()
+        show_main_menu()
+        ch=input("\n"+S["prompt"])
+        handle_choice(ch)
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
