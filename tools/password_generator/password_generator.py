@@ -1,7 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/env python3
 """
 EraldForge - Generator Kata Sandi
-Alat profesional untuk menghasilkan kata sandi acak yang kuat dengan opsi kustomisasi mendalam.
+Alat profesional untuk menghasilkan kata sandi acak yang kuat dengan opsi kustomisasi mendalam, 
+termasuk analisis kekuatan (Entropi Bit) dan mode batch.
 """
 import os
 import sys
@@ -9,12 +10,12 @@ import secrets
 import string
 import subprocess
 import re
+import math # Diperlukan untuk perhitungan entropi
 
 # ---------------- Tema & Warna ----------------
 
 def get_theme_colors():
     """Mengambil skema warna berdasarkan tema lingkungan (default: clean)."""
-    # Menggunakan Kuning Neon untuk banner dan Cyan/Biru untuk output utama
     t = os.environ.get("ERALDFORGE_THEME", "clean")
     if t == "hacker":
         return {
@@ -22,7 +23,8 @@ def get_theme_colors():
             "R": "\033[91m", # Red (Error)
             "X": "\033[0m",  # Reset
             "B": "\033[36m", # Cyan (Generated Password)
-            "G": "\033[32m"  # Green (Success/Info)
+            "G": "\033[32m", # Green (Success/Info/Strong)
+            "W": "\033[97m", # White/Detail
         }
     else:
         return {
@@ -30,7 +32,8 @@ def get_theme_colors():
             "R": "\033[91m", # Red (Error)
             "X": "\033[0m",  # Reset
             "B": "\033[34m", # Blue (Generated Password)
-            "G": "\033[32m"  # Green (Success/Info)
+            "G": "\033[32m", # Green (Success/Info/Strong)
+            "W": "\033[97m", # White/Detail
         }
 
 C = get_theme_colors()
@@ -57,14 +60,23 @@ def display_banner():
     os.system('clear')
     for line in BANNER_LINES:
         print(line)
-    print(C["G"] + "Generator Kata Sandi Acak Kuat" + C["X"])
+    print(C["G"] + "Generator Kata Sandi Acak Kuat & Analisis Entropi" + C["X"])
     print(C["G"] + "===================================================" + C["X"] + "\n")
 
-# ---------------- Logika Utama Generator ----------------
+# ---------------- Logika Utama Generator & Entropi ----------------
+
+def calculate_entropy(length, pool_size):
+    """Menghitung entropi (kekuatan) kata sandi dalam bit."""
+    # Entropy (bits) = L * log2(N)
+    # L = Length, N = Pool Size (jumlah karakter unik yang mungkin)
+    if pool_size <= 1:
+        return 0.0
+    return length * math.log2(pool_size)
 
 def generate_password(length, use_lower, use_upper, use_digits, use_symbols, exclude_chars=""):
     """
     Menghasilkan kata sandi acak menggunakan modul secrets.
+    Mengembalikan tuple: (kata_sandi, ukuran_kumpulan_karakter)
     """
     alphabet = ""
     
@@ -74,31 +86,44 @@ def generate_password(length, use_lower, use_upper, use_digits, use_symbols, exc
         alphabet += string.ascii_uppercase
     if use_digits:
         alphabet += string.digits
+    
+    # Simbol yang umum dan aman, dipecah agar mudah dimodifikasi
+    SAFE_SYMBOLS = "!@#$%^&*()-_=+[]{};:,.<>?"
+
     if use_symbols:
-        # Menambahkan simbol yang umum dan aman
-        alphabet += "!@#$%^&*()-_=+[]{};:,.<>?"
+        alphabet += SAFE_SYMBOLS
     
     # Menghapus karakter yang dikecualikan
     for char in exclude_chars:
+        # Menghapus secara aman
         alphabet = alphabet.replace(char, "")
 
-    if not alphabet:
-        raise ValueError("Tidak ada karakter yang tersedia untuk generasi kata sandi. Pastikan Anda memilih setidaknya satu jenis karakter.")
+    pool_size = len(alphabet)
 
-    # Menghasilkan kata sandi
-    return "".join(secrets.choice(alphabet) for _ in range(length))
+    if pool_size < 4:
+        raise ValueError(f"Ukuran kumpulan karakter terlalu kecil ({pool_size}). Pilih opsi lebih banyak.")
 
-def get_valid_length(default=16):
+    # Memastikan kata sandi memenuhi panjang yang diminta
+    if length > 0:
+        pw = "".join(secrets.choice(alphabet) for _ in range(length))
+    else:
+        pw = ""
+
+    return pw, pool_size
+
+# ---------------- Fungsi Pendukung I/O ----------------
+
+def get_valid_length(default=16, min_len=8, max_len=128):
     """Meminta input panjang dan memvalidasinya."""
     while True:
         try:
-            prompt = f"Panjang Kata Sandi (minimal 8, maksimal 128) [{default}]: "
+            prompt = f"Panjang Kata Sandi (minimal {min_len}, maksimal {max_len}) [{default}]: "
             length_input = input(prompt).strip() or str(default)
             length = int(length_input)
-            if 8 <= length <= 128:
+            if min_len <= length <= max_len:
                 return length
             else:
-                print(f"{C['R']}Panjang harus antara 8 dan 128.{C['X']}")
+                print(f"{C['R']}Panjang harus antara {min_len} dan {max_len}.{C['X']}")
         except ValueError:
             print(f"{C['R']}Input tidak valid. Masukkan angka.{C['X']}")
 
@@ -121,13 +146,12 @@ def get_excluded_chars():
     ambiguous_chars = "Il1O0" 
     
     # Tawarkan pengecualian karakter ambigu
+    excluded = ""
     if get_user_confirmation(f"Kecualikan karakter ambigu (misalnya {ambiguous_chars})?", default='y'):
         excluded = ambiguous_chars
-    else:
-        excluded = ""
     
     # Tawarkan pengecualian manual
-    manual_exclude = input("Karakter tambahan yang ingin dikecualikan (kosongkan jika tidak ada): ").strip()
+    manual_exclude = input("Karakter tambahan yang ingin dikecualikan (pisahkan tanpa spasi): ").strip()
     
     # Gabungkan dan hapus duplikasi
     final_exclude = "".join(sorted(list(set(excluded + manual_exclude))))
@@ -137,94 +161,217 @@ def get_excluded_chars():
 def copy_to_clipboard(password):
     """Menyalin kata sandi ke clipboard (khusus Termux)."""
     try:
-        # Cek apakah perintah termux-clipboard-set tersedia
-        subprocess.run(["which", "termux-clipboard-set"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
-        # Salin
-        subprocess.run(["termux-clipboard-set"], input=password.encode('utf-8'), check=False)
+        # Menggunakan 'tee' untuk menghindari masalah input terminal
+        proc = subprocess.Popen(["termux-clipboard-set"], stdin=subprocess.PIPE, text=True, check=False)
+        proc.communicate(input=password, timeout=1)
         print(f"\n{C['G']}✅ Kata sandi berhasil disalin ke clipboard (via termux-clipboard-set).{C['X']}")
-    except subprocess.CalledProcessError:
-        print(f"\n{C['R']}❌ Perintah 'termux-clipboard-set' tidak tersedia.{C['X']}")
-        print(f"{C['R']}Instal 'termux-api' untuk fitur ini: pkg install termux-api{C['X']}")
     except FileNotFoundError:
-        # 'which' command not found, or other general error
-        pass
+        print(f"\n{C['R']}❌ Perintah 'termux-clipboard-set' tidak tersedia. Silakan instal 'termux-api'.{C['X']}")
     except Exception as e:
-        print(f"\n{C['R']}❌ Gagal menyalin ke clipboard: {e}{C['X']}")
+        # Catch timeout or other general errors
+        print(f"\n{C['R']}❌ Gagal menyalin ke clipboard: {type(e).__name__}{C['X']}")
+
+def print_strength_analysis(entropy, length):
+    """Menganalisis dan mencetak kekuatan kata sandi berdasarkan entropi."""
+    if entropy >= 120:
+        strength_color = C['G']
+        rating = "BRUTAL (Extreme)"
+    elif entropy >= 90:
+        strength_color = C['G']
+        rating = "SANGAT KUAT (Excellent)"
+    elif entropy >= 60:
+        strength_color = C['P']
+        rating = "KUAT (Strong)"
+    elif entropy >= 40:
+        strength_color = C['P']
+        rating = "SEDANG (Moderate)"
+    else:
+        strength_color = C['R']
+        rating = "LEMAH (Weak)"
+        
+    # Standard keamanan minimum yang direkomendasikan adalah 80-100 bit.
+    
+    print("\n" + C['W'] + "--- Analisis Kekuatan ---" + C['X'])
+    print(f"  Panjang: {length}")
+    print(f"  Entropi Bit: {C['W']}{entropy:.2f} bits{C['X']}")
+    print(f"  Rating Keamanan: {strength_color}{rating}{C['X']}")
+    print("-" * 25 + C['X'])
 
 
-def main():
-    display_banner()
+# ---------------- Alur Menu & Mode ----------------
+
+def get_custom_settings(default_length=24):
+    """Mengumpulkan semua pengaturan kustom dari pengguna."""
+    print("\n" + C['W'] + "--- Pengaturan Kustomisasi ---" + C['X'])
+    length = get_valid_length(default=default_length, min_len=8, max_len=128)
+    use_lower = get_user_confirmation("Sertakan huruf kecil (a-z)?", default='y')
+    use_upper = get_user_confirmation("Sertakan huruf besar (A-Z)?", default='y')
+    use_digits = get_user_confirmation("Sertakan angka (0-9)?", default='y')
+    use_symbols = get_user_confirmation("Sertakan simbol (!@#$%)?", default='y')
+    excluded_chars = get_excluded_chars()
     
-    print(C["G"] + "Pilih Mode Keamanan:" + C["X"])
-    print(f"  {C['B']}1{C['X']}. {C['B']}Dasar{C['X']} (Lower-Awal: 8 chars, Tanpa Simbol)")
-    print(f"  {C['B']}2{C['X']}. {C['B']}Standar{C['X']} (Lower/Upper/Digit: 16 chars, Tanpa Simbol)")
-    print(f"  {C['B']}3{C['X']}. {C['X']}Kuat (Full Custom: 24 chars, Semua Karakter)")
-    print(f"  {C['B']}4{C['X']}. {C['X']}Kustom (Tentukan sendiri)")
+    return length, use_lower, use_upper, use_digits, use_symbols, excluded_chars
+
+def setup_generation(mode):
+    """Menetapkan pengaturan berdasarkan mode pilihan."""
     
-    mode = input(f"\nPilihan mode (1-4) [{C['B']}3{C['X']}]: ").strip() or "3"
-    
-    # Default Settings based on Mode
+    # Default Settings
     length = 24
     use_lower = True
     use_upper = True
     use_digits = True
     use_symbols = True
-    excluded_chars = "Il1O0" # Default, akan ditimpa jika mode Kustom dipilih
+    excluded_chars = "Il1O0" # Default
 
     if mode == '1': # Dasar
-        length = 8
+        length = 10
         use_upper = False
-        use_digits = True
         use_symbols = False
-        excluded_chars = "Il1O0"
     elif mode == '2': # Standar
         length = 16
         use_upper = True
-        use_digits = True
         use_symbols = False
-        excluded_chars = "Il1O0"
+    elif mode == '3': # Kuat
+        length = 24
+        use_symbols = True
     elif mode == '4': # Kustom
-        print("\n--- Pengaturan Kustom ---")
-        length = get_valid_length(default=length)
-        use_lower = get_user_confirmation("Sertakan huruf kecil (a-z)?", default='y')
-        use_upper = get_user_confirmation("Sertakan huruf besar (A-Z)?", default='y')
-        use_digits = get_user_confirmation("Sertakan angka (0-9)?", default='y')
-        use_symbols = get_user_confirmation("Sertakan simbol (!@#$%)?", default='y')
-        excluded_chars = get_excluded_chars()
+        length, use_lower, use_upper, use_digits, use_symbols, excluded_chars = get_custom_settings(default_length=length)
+    else:
+        # Fallback to Kuat if invalid input (shouldn't happen with proper menu handling)
+        pass 
         
+    # Tampilkan detail final sebelum generasi
     print("\n" + C['G'] + "--- Detail Generasi ---" + C['X'])
-    print(f"Panjang: {length}")
-    print(f"Lower: {'Ya' if use_lower else 'Tidak'}")
-    print(f"Upper: {'Ya' if use_upper else 'Tidak'}")
-    print(f"Angka: {'Ya' if use_digits else 'Tidak'}")
-    print(f"Simbol: {'Ya' if use_symbols else 'Tidak'}")
-    print(f"Kecuali: {excluded_chars if excluded_chars else 'Tidak ada'}\n")
+    print(f"  Panjang: {length}")
+    print(f"  Lower (a-z): {'Ya' if use_lower else 'Tidak'}")
+    print(f"  Upper (A-Z): {'Ya' if use_upper else 'Tidak'}")
+    print(f"  Angka (0-9): {'Ya' if use_digits else 'Tidak'}")
+    print(f"  Simbol (!@#): {'Ya' if use_symbols else 'Tidak'}")
+    print(f"  Kecuali: {C['R']}{excluded_chars if excluded_chars else 'Tidak ada'}{C['X']}")
+    print("-" * 25 + C['X'])
+
+    # Pastikan setidaknya ada satu jenis karakter
+    if not (use_lower or use_upper or use_digits or use_symbols):
+        raise ValueError("Setidaknya satu set karakter (huruf, angka, atau simbol) harus dipilih.")
+
+    return length, use_lower, use_upper, use_digits, use_symbols, excluded_chars
+
+def generate_single_password_flow():
+    """Alur untuk menghasilkan satu kata sandi dan analisis penuh."""
+    display_banner()
     
+    print(C["G"] + "Pilih Mode Keamanan (Single Password):" + C["X"])
+    print(f"  {C['B']}1{C['X']}. {C['W']}Dasar (10 chars, a-z, 0-9)" + C['X'])
+    print(f"  {C['B']}2{C['X']}. {C['W']}Standar (16 chars, Full Alpha-Numeric)" + C['X'])
+    print(f"  {C['B']}3{C['X']}. {C['G']}Kuat (24 chars, Semua Karakter)" + C['X'])
+    print(f"  {C['B']}4{C['X']}. {C['P']}Kustom (Tentukan sendiri)" + C['X'])
+    
+    mode = input(f"\nPilihan mode (1-4) [{C['B']}3{C['X']}]: ").strip() or "3"
+
     try:
-        pw = generate_password(
+        length, use_lower, use_upper, use_digits, use_symbols, excluded_chars = setup_generation(mode)
+        
+        pw, pool_size = generate_password(
             length=length,
-            use_lower=use_lower,
-            use_upper=use_upper,
-            use_digits=use_digits,
-            use_symbols=use_symbols,
+            use_lower=use_lower, use_upper=use_upper, 
+            use_digits=use_digits, use_symbols=use_symbols,
             exclude_chars=excluded_chars
         )
-        print("Kata sandi yang dihasilkan:\n")
-        print(C["B"] + pw + C["X"])
+        
+        entropy = calculate_entropy(length, pool_size)
+
+        print("\nHasil Generasi Kata Sandi:\n")
+        print(f"{C['B']}{pw}{C['X']}")
+        
+        print_strength_analysis(entropy, length)
         
         copy_to_clipboard(pw)
         
     except ValueError as e:
-        print(f"\n{C['R']}⚠️ ERROR: {e}{C['X']}")
+        print(f"\n{C['R']}⚠️ ERROR Konfigurasi: {e}{C['X']}")
     except Exception as e:
         print(f"\n{C['R']}⚠️ ERROR tak terduga: {e}{C['X']}")
-        
-    input(f"\n{C['G']}Tekan Enter untuk keluar...{C['X']}")
 
-if __name__ == "__main__":
+def generate_multiple_passwords_flow():
+    """Alur untuk menghasilkan banyak kata sandi sekaligus (Batch Mode)."""
+    display_banner()
+    print(C['G'] + "--- Mode Generasi Batch (Massal) ---" + C['X'])
+    
+    # 1. Tentukan jumlah batch
+    while True:
+        try:
+            count = int(input("Jumlah kata sandi yang ingin dibuat (1-20) [5]: ").strip() or "5")
+            if 1 <= count <= 20:
+                break
+            print(f"{C['R']}Jumlah harus antara 1 dan 20.{C['X']}")
+        except ValueError:
+            print(f"{C['R']}Input tidak valid. Masukkan angka.{C['X']}")
+
+    # 2. Ambil pengaturan (dipaksa Kustom/Kuat untuk batch)
+    print("\nPengaturan akan digunakan untuk SEMUA kata sandi dalam batch.")
+    
+    # Meminta pengaturan kustom
     try:
-        main()
+        length, use_lower, use_upper, use_digits, use_symbols, excluded_chars = get_custom_settings(default_length=16)
+
+        print("\n" + C['G'] + "--- Proses Generasi (Batch) ---" + C['X'])
+        generated_passwords = []
+        
+        for i in range(count):
+            pw, pool_size = generate_password(
+                length=length,
+                use_lower=use_lower, use_upper=use_upper, 
+                use_digits=use_digits, use_symbols=use_symbols,
+                exclude_chars=excluded_chars
+            )
+            entropy = calculate_entropy(length, pool_size)
+            
+            # Tampilkan hasil dalam format list
+            print(f"{C['W']}{i+1}.{C['X']} {C['B']}{pw}{C['X']} ({entropy:.0f} bits)")
+            generated_passwords.append(pw)
+
+        # Hanya salin yang pertama ke clipboard untuk menghindari kekacauan
+        if generated_passwords:
+            print(f"\n{C['P']}⚠️ Hanya kata sandi pertama ({generated_passwords[0]}) yang akan disalin ke clipboard.{C['X']}")
+            copy_to_clipboard(generated_passwords[0])
+
+    except ValueError as e:
+        print(f"\n{C['R']}⚠️ ERROR Konfigurasi: {e}{C['X']}")
+    except Exception as e:
+        print(f"\n{C['R']}⚠️ ERROR tak terduga: {e}{C['X']}")
+
+
+def main_menu():
+    """Menampilkan menu utama dan mengarahkan ke alur yang dipilih."""
+    while True:
+        display_banner()
+        print(C["W"] + "Menu Utama Generator Kata Sandi:" + C["X"])
+        print(f"  {C['B']}1{C['X']}. {C['G']}Buat SATU Kata Sandi Kuat (Analisis Penuh)" + C['X'])
+        print(f"  {C['B']}2{C['X']}. {C['P']}Mode Batch (Buat Banyak Kata Sandi Sekaligus)" + C['X'])
+        print(f"  {C['R']}9{C['X']}. {C['R']}Keluar" + C['X'])
+        
+        choice = input(f"\nPilihan (1/2/9): ").strip()
+
+        if choice == '1':
+            generate_single_password_flow()
+        elif choice == '2':
+            generate_multiple_passwords_flow()
+        elif choice in ('9', 'exit', 'quit'):
+            print(f"\n{C['G']}Terima kasih, EraldForge Generator Kata Sandi ditutup.{C['X']}")
+            break
+        else:
+            print(f"\n{C['R']}Pilihan tidak valid. Silakan coba lagi.{C['X']}")
+            
+        input(f"\n{C['G']}Tekan Enter untuk kembali ke Menu Utama...{C['X']}")
+        
+
+def main():
+    """Fungsi utama."""
+    try:
+        main_menu()
     except KeyboardInterrupt:
         print(f"\n{C['R']}Generator dihentikan oleh pengguna.{C['X']}")
         sys.exit(0)
+
+if __name__ == "__main__":
+    main()
