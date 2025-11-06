@@ -33,6 +33,7 @@ BANNER_LINES = [
 ]
 
 def print_banner():
+    """Mencetak banner dan header utama aplikasi."""
     os.system("clear")
     for line in BANNER_LINES:
         print(line)
@@ -44,7 +45,6 @@ def load():
     """Memuat data todo dari file JSON."""
     try:
         if FILE.exists():
-            # Mengembalikan list of dictionaries
             return json.loads(FILE.read_text(encoding='utf-8'))
     except json.JSONDecodeError:
         print(f"{R}Error: File JSON rusak. Membuat ulang list kosong.{W}")
@@ -61,7 +61,7 @@ def save(data):
 
 # ---------------- Display Function (Aesthetics) ----------------
 def get_prio_style(pr):
-    """Memberikan warna berdasarkan prioritas."""
+    """Memberikan warna dan padding 4 karakter berdasarkan prioritas."""
     pr = pr.lower().strip()
     if pr == "high":
         return BOLD + R, "HIGH"
@@ -71,7 +71,7 @@ def get_prio_style(pr):
         return Y, "MED "
 
 def show(data):
-    """Menampilkan daftar tugas dengan tata letak profesional dan warna."""
+    """Menampilkan daftar tugas dengan tata letak profesional dan warna yang rata."""
     if not data:
         print(C_BOX + "══════════════════════════════════════════" + W)
         print(Y + "🎉 Semua tugas selesai atau belum ada tugas. Selamat!" + W)
@@ -79,28 +79,32 @@ def show(data):
         return
         
     print(C_BOX + BOLD + f"\n===== DAFTAR TUGAS ({len(data)} TOTAL) =====" + W)
-    print(f"{C_BOX}No | Prio | Due Date  | Status  | Tugas{W}")
-    print(C_BOX + "---+------+-----------+---------+--------------------------" + W)
+    # Header alignment: No(2) | Prio(4) | Due Date(10) | Status(6) | Tugas
+    print(f"{C_BOX}No | Prio | Due Date | Status | Tugas{W}")
+    print(C_BOX + "---+------+----------+--------+--------------------------" + W)
 
     for i, t in enumerate(data, start=1):
         is_done = t.get("done", False)
         
-        # Prioritas
+        # 1. Prioritas (4 karakter)
         pr_color, pr_text = get_prio_style(t.get("priority", "med"))
         pr_display = pr_color + pr_text + W
         
-        # Due Date
+        # 2. Due Date (10 karakter)
         due = t.get("due", "-").ljust(10)
         
-        # Status
+        # 3. Status (Dibuat 6 karakter visual agar rata)
         if is_done:
-            status_text = f"{G}√ DONE{W}"
+            status_text = f"{G}√ DONE{W}"   # Teks 6 karakter
             task_color = DIM # Selesai, teks diredupkan
         else:
-            status_text = f"{Y} TODO{W}"
+            status_text = f"{Y} TODO {W}"  # Teks 6 karakter (diberi spasi di awal dan akhir)
             task_color = W # Belum, teks normal
         
         # Output line
+        # Note: Menggunakan ljust(2) dan ljust(4) untuk menjaga jarak setelah kode warna.
+        # Karena ANSI code tidak dihitung oleh ljust, kita harus memastikan string
+        # yang diberi warna sudah memiliki panjang yang tepat.
         print(f"{C_BOX}{str(i).ljust(2)}{W} | {pr_display} | {due} | {status_text} | {task_color}{t.get('task')}{W}")
 
     print(C_BOX + "══════════════════════════════════════════" + W)
