@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/env python3
-# EraldForge Clipboard Manager v4.0 (Enhanced Edition)
-# Fitur: Input Manual, Pemisahan Aksi, Auto-Folder
+# EraldForge Clipboard Manager v5.0 (Ultimate Edition)
+# Fitur: Input Manual, Bersihkan Riwayat, Refresh Menu
 
 import os, sys
 from datetime import datetime
@@ -130,7 +130,7 @@ def action_show_history():
     """Aksi 3: Tampilkan riwayat."""
     history = load_history()
     print(f"\n{C}──────────────────────────────────────────────{W}")
-    print(f"{C} Riwayat Tersimpan ({len(history)} item terakhir){W}")
+    print(f"{C} Riwayat Tersimpan ({len(history)} item){W}")
     print(f"{C}──────────────────────────────────────────────{W}")
     
     if not history:
@@ -162,8 +162,8 @@ def action_set_clipboard():
 
         # Pastikan pilihan valid dalam 100 item terakhir
         if 1 <= choice <= len(history):
-            # Mengambil item dari posisi yang benar (indeks dari belakang)
-            selected_item = history[choice - 1]
+            # Mengambil item dari posisi yang benar (indeks dimulai dari 0)
+            selected_item = history[choice - 1] 
             
             # Tempel ke clipboard Termux
             success, error = termux_clipboard_set(selected_item['content'])
@@ -211,6 +211,23 @@ def action_search_history():
         print(f"[{i:02}] {item['timestamp']} | {summary}")
     print(f"{C}──────────────────────────────────────────────{W}")
 
+def action_clear_history():
+    """Aksi 6: Bersihkan semua riwayat yang tersimpan."""
+    print(f"\n{R}{BOLD}⚠️ PERINGATAN: Menghapus semua riwayat. Tindakan ini TIDAK dapat dibatalkan!{W}")
+    
+    confirm = input(f"{Y}Ketik '{BOLD}YA{W}{Y}' untuk konfirmasi penghapusan seluruh riwayat: {W}").strip().upper()
+    
+    if confirm == 'YA':
+        try:
+            # Timpa file riwayat dengan kosong
+            with open(HISTORY_FILE, 'w') as f:
+                f.write("")
+            print(f"{G}✅ Riwayat {HISTORY_FILE} berhasil dihapus/dibersihkan.{W}")
+        except Exception as e:
+            print(f"{R}❌ Gagal menghapus riwayat: {e}{W}")
+    else:
+        print(f"{Y}Pembatalan penghapusan riwayat.{W}")
+
 
 # --- Loop Utama ---
 def main():
@@ -218,18 +235,21 @@ def main():
     
     while True:
         print(BANNER)
-        print(f"{C}EraldForge Clipboard Manager v4.0{W}")
+        print(f"{C}EraldForge Clipboard Manager v5.0 (Ultimate Edition){W}")
         print(f"{C}──────────────────────────────────────────────{W}")
-        print(f"[1] Ambil dari Clipboard - Salin item saat ini dari clpboard sistem ke riwayt.")
+        print(f"[1] Ambil dari Clipboard - Salin item saat ini dari clipboard sistem ke riwayat.")
         print(f"[2] Simpan Manual        - Masukkan teks secara manual ke riwayat.")
         print(f"[3] Tampilkan Riwayat    - Lihat 100 item terakhir yang tersimpan.")
         print(f"[4] Tempel ke Clipboard  - Salin item dari riwayat ke clipboard aktif.")
         print(f"[5] Cari Riwayat         - Cari teks di antara item yang tersimpan.")
+        print(f"{C}──────────────────────────────────────────────{W}")
+        print(f"[6] Bersihkan Riwayat    - Hapus permanen semua item yang tersimpan.")
+        print(f"[R] Refresh Menu         - Bersihkan layar dan tampilkan menu lagi.")
         print(f"[0] Keluar               - Tutup Clipboard Manager.")
         print(f"{C}──────────────────────────────────────────────{W}")
         
         try:
-            choice = input(f"{G}{BOLD}Pilihan > {W}").strip()
+            choice = input(f"{G}{BOLD}Pilihan > {W}").strip().upper()
             
             if choice == '1':
                 action_get_clipboard()
@@ -241,6 +261,11 @@ def main():
                 action_set_clipboard()
             elif choice == '5':
                 action_search_history()
+            elif choice == '6':
+                action_clear_history()
+            elif choice == 'R': # Pilihan refresh
+                os.system('clear')
+                continue # Langsung ke awal loop untuk menampilkan menu baru
             elif choice == '0':
                 print(f"{Y}Keluar dari Clipboard Manager. Sampai jumpa!{W}")
                 break
