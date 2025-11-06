@@ -1,7 +1,7 @@
 {
-  "name": "WiFi Info (readonly)",
-  "id": "wifi_info",
-  "desc": "Tampilkan hasil pemindaian Wi-Fi (termux-wifi-scaninfo). Read-only.",
+  "name": "6. WiFi Info (Professional Scanner)",
+  "id": "wifi_info_pro",
+  "desc": "Menampilkan, menganalisis (Vendor, Band), dan menyortir hasil pemindaian Wi-Fi secara interaktif.",
   "entry": "wifi_info.py",
   "lang": "python",
   "security": false
