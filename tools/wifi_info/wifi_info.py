@@ -19,16 +19,16 @@ BOLD   = "\033[1m"
 DIM    = "\033[2m"      # Dim
 
 # ---------------- Banner ASCII (KUNING NEON KESELURUHAN & Fixed Escape) ----------------
-# Menggunakan C_NEON untuk semua elemen visual banner.
-# Diperbaiki: Menggunakan \\ untuk mengatasi SyntaxWarning pada backslash.
+# Banner disesuaikan persis dengan template yang diminta, dengan pewarnaan Neon Yellow penuh
+# dan alignment spasi yang diperbaiki. Karakter \ di ASCII art di-escape dengan \.
 BANNER_LINES = [
-    C_NEON + "··························" + W,
-    C_NEON + ":" + BOLD + C_NEON + "__        _______  __  " + W + C_NEON + ":" + W,
-    C_NEON + ":" + BOLD + C_NEON + "\\\\ \\      / / ____|/ _| " + W + C_NEON + ":" + W, # \ \      / /
-    C_NEON + ":" + BOLD + C_NEON + " \\\\ \\ /\\ / / |__ | |_  " + W + C_NEON + ":" + W, #  \ \ /\ / /
-    C_NEON + ":" + BOLD + C_NEON + "  \\\\ V  V /|  __||  _| " + W + C_NEON + ":" + W, #   \ V  V /
-    C_NEON + ":" + BOLD + C_NEON + "   \\\\_/\\_/ |_|   |_|   " + W + C_NEON + ":" + W, #    \_/\_/
-    C_NEON + "··························" + W,
+    C_NEON + "············································" + W,
+    C_NEON + BOLD + ":__        ___  __ _   ___        __       " + C_NEON + ":",
+    C_NEON + BOLD + ":\\ \\      / (_)/ _(_) |_ _|_ __  / _| ___  " + C_NEON + ":",
+    C_NEON + BOLD + ": \\ \\ /\\ / /| | |_| |  | || '_ \\| |_ / _ \\ " + C_NEON + ":",
+    C_NEON + BOLD + ":  \\ V  V / | |  _| |  | || | | |  _| (_) |" + C_NEON + ":",
+    C_NEON + BOLD + ":   \\_/\\_/  |_|_| |_| |___|_| |_|_|  \\___/ " + C_NEON + ":",
+    C_NEON + "············································" + W,
 ]
 
 def print_banner():
@@ -60,15 +60,28 @@ def run_cmd(command):
         # Error lain (permission, dll.)
         return None
 
+def check_tool_available(tool_name):
+    """Mengecek ketersediaan tool di PATH."""
+    try:
+        # Menjalankan perintah dengan output ke /dev/null
+        # Menggunakan 'which' atau '--version' untuk tes ketersediaan
+        subprocess.run(["which", tool_name], capture_output=True, check=True, timeout=5)
+        return True
+    except (FileNotFoundError, subprocess.CalledProcessError, TimeoutError):
+        # Jika perintah tidak ditemukan atau mengembalikan error
+        return False
+    except Exception:
+        # Error umum
+        return False
+
 def get_wifi_interface():
     """Mencari nama antarmuka Wi-Fi yang paling mungkin (misalnya wlan0, eth0, atau netcfg/ip)"""
     # 1. Cek dengan 'ip link show'
     ip_output = run_cmd(["ip", "link", "show"])
     if ip_output:
-        # Cari pola umum: wlanX, raX, atmlanX, dsb. (kecuali loopback lo)
+        # Cari pola umum: wlanX, ethX, dsb. (kecuali loopback lo)
         interfaces = re.findall(r"(\d+): (wlan\d+|eth\d+|ra\d+|.*lan\d+):", ip_output)
         if interfaces:
-            # Mengambil antarmuka pertama selain 'lo'
             for num, name in interfaces:
                 if name != "lo":
                     return name
@@ -83,9 +96,37 @@ def get_wifi_interface():
                 return line.split()[0].strip()
 
     # Default fallback
-    return "wlan0" # Interface umum
+    return "wlan0"
 
 # ---------------- Core Logic Functions ----------------
+
+def check_system_diagnostics():
+    """Mengecek ketersediaan utilitas jaringan yang diperlukan."""
+    print(C_BOX + BOLD + "\n[ 3. DIAGNOSTIK SISTEM ]" + W)
+    print(C_BOX + "=========================" + W)
+    
+    tools = {
+        "ip": "Utilitas dasar IP (PENTING)",
+        "iw": "Pemindaian/Informasi Wi-Fi tingkat lanjut (ROOT/Termux-IW)",
+        "wpa_cli": "Status koneksi Wi-Fi",
+        "termux-wifi-scan": "Pemindaian Wi-Fi (Alternatif Termux)"
+    }
+    
+    all_available = True
+
+    for tool, desc in tools.items():
+        available = check_tool_available(tool)
+        status = f"{G}✅ TERSEDIA" if available else f"{R}❌ TIDAK DITEMUKAN"
+        print(f"[{status}{W}] {BOLD}{tool:<20}{W}{Y}{desc}{W}")
+        if not available and tool in ["ip", "iw"]:
+            all_available = False
+            
+    if not all_available:
+        print(f"\n{R}PERINGATAN:{W} Beberapa alat penting tidak ditemukan.")
+        print(f"{R}Instal 'iproute2', 'iw' atau pastikan Termux API diinstal.{W}")
+    else:
+        print(f"\n{G}✅ SEMUA ALAT PENTING TERSEDIA. Skrip seharusnya berjalan lancar.{W}")
+
 
 def show_network_status(interface):
     """Menampilkan status koneksi dan IP Address saat ini."""
@@ -93,7 +134,7 @@ def show_network_status(interface):
     
     # 1. Mendapatkan status koneksi/IP
     ip_address = run_cmd(["ip", "addr", "show", interface])
-    if ip_address:
+    if ip_address and "UP" in ip_address:
         # Parse IP Address
         ip_match = re.search(r"inet (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})", ip_address)
         if ip_match:
@@ -101,11 +142,15 @@ def show_network_status(interface):
             print(f"{G}✅ Status Antarmuka:{W} {BOLD}UP{W}")
             print(f"{G}⭐ IP Address:{W} {ip}")
         else:
-            print(f"{R}Status Antarmuka:{W} Down atau IP tidak ditemukan.")
+            print(f"{Y}Status Antarmuka:{W} UP, tapi IP belum ditetapkan.")
+    else:
+        print(f"{R}Status Antarmuka:{W} Down atau informasi gagal diambil.")
 
     # 2. Mendapatkan SSID yang terhubung (menggunakan wpa_cli status jika ada)
     ssid = "Tidak Terhubung"
     wpa_status = run_cmd(["wpa_cli", "status"])
+    
+    # Cek apakah wpa_cli tersedia dan berhasil mendapatkan status
     if wpa_status and "wpa_state=COMPLETED" in wpa_status:
         ssid_match = re.search(r"ssid=(.*)", wpa_status)
         bssid_match = re.search(r"bssid=(.*)", wpa_status)
@@ -121,18 +166,23 @@ def scan_available_networks(interface):
     """Memindai dan menampilkan daftar jaringan Wi-Fi di sekitar."""
     print(C_BOX + BOLD + f"\n[ 2. PEMINDAIAN JARINGAN (Interface: {interface}) ]" + W)
     
-    # Coba menggunakan iw (perlu diinstal dan mungkin perlu root)
-    scan_output = run_cmd(["iw", interface, "scan"])
-    
-    if not scan_output:
-        # Fallback: Perintah 'iw' gagal/tidak ada, coba dengan 'termux-wifi-scan' (khusus Termux)
-        scan_output = run_cmd(["termux-wifi-scan"])
+    # Coba menggunakan termux-wifi-scan (Paling umum di Termux)
+    scan_output = run_cmd(["termux-wifi-scan"])
+    is_json_scan = False
+
+    if scan_output and scan_output.startswith('['):
+        is_json_scan = True
+        
+    if not is_json_scan:
+        # Fallback: Coba menggunakan iw (Standar Linux/ROOT)
+        scan_output = run_cmd(["iw", interface, "scan"])
         
         if not scan_output:
              print(f"{R}Perintah 'iw' atau 'termux-wifi-scan' tidak ditemukan atau gagal.{W}")
-             print(f"{R}Pastikan Anda telah menginstal 'iw' ({Y}pkg install iw{R}) atau memiliki izin root.{W}")
+             print(f"{R}Pastikan Anda telah menginstal 'iw' ({Y}pkg install iw{R}) atau memiliki izin.{W}")
              return
 
+    if is_json_scan:
         # Parsing output termux-wifi-scan (JSON)
         try:
             import json
@@ -141,21 +191,28 @@ def scan_available_networks(interface):
             print(C_BOX + "-----+--------------+-------------------" + W)
             for ap in scan_data:
                 ssid = ap.get("ssid", "<Hidden/N/A>")
-                signal = ap.get("signal_level", "N/A")
+                # Termux API: 'level' is usually used for signal strength (dBm)
+                signal = ap.get("level", "N/A") 
+                if signal == "N/A":
+                    signal = ap.get("signal_level", "N/A")
+                
                 bssid = ap.get("bssid", "N/A")
                 
-                # Highlight berdasarkan kekuatan sinyal
-                signal_color = R if signal != "N/A" and int(signal) < -70 else G if signal != "N/A" and int(signal) > -50 else Y
+                signal_color = R 
+                if signal != "N/A":
+                    try:
+                        sig_val = int(signal)
+                        if sig_val > -50: signal_color = G
+                        elif sig_val > -70: signal_color = Y
+                    except ValueError: pass
                 
-                print(f"{Y}{ssid.ljust(4)}{W} | {signal_color}{signal.ljust(12)}{W} | {bssid}")
+                print(f"{Y}{ssid.ljust(4)}{W} | {signal_color}{str(signal).ljust(12)}{W} | {bssid}")
             return
         except (ImportError, json.JSONDecodeError):
-             # Jika JSON parsing gagal atau 'json' tidak tersedia
-             print(f"{R}Gagal memparsing output pemindaian. Coba instal 'iw' atau jalankan sebagai root.{W}")
+             print(f"{R}Gagal memparsing output pemindaian Termux API. Coba instal 'python-json'.{W}")
              return
-
-
-    # Parsing output 'iw <interface> scan' (Standar Linux)
+    
+    # Parsing output 'iw <interface> scan' (Standar Linux Fallback)
     print(f"{C_BOX}SSID | Signal (dBm) | BSSID | Encryption{W}")
     print(C_BOX + "-----+--------------+------------+-------------------" + W)
 
@@ -173,15 +230,13 @@ def scan_available_networks(interface):
         signal = signal_match.group(1).strip() if signal_match else "N/A"
         encryption = "WPA2/3" if "RSN" in details else "WPA" if "WPA" in details else "WEP" if "WEP" in details else "Open"
         
-        # Highlight berdasarkan kekuatan sinyal
         signal_color = R
         if signal != "N/A":
             try:
                 sig_val = float(signal)
                 if sig_val > -50: signal_color = G
                 elif sig_val > -70: signal_color = Y
-            except ValueError:
-                pass # Tetap R jika parsing gagal
+            except ValueError: pass
 
         print(
             f"{Y}{ssid.ljust(4)}{W} | "
@@ -210,22 +265,29 @@ def main():
             print_banner()
             show_network_status(interface)
             scan_available_networks(interface)
-
+            
             print(f"\n{C_BOX}{BOLD}===== MENU AKSI =====" + W)
-            print(f"{C_BOX}1.{W} {G}r{W}: Refresh Data  | {C_BOX}2.{W} {C_NEON}q{W}: Quit")
+            print(f"{C_BOX}1.{W} {G}r{W}: Refresh | {C_BOX}2.{W} {R}d{W}: Diagnostik Sistem | {C_BOX}3.{W} {C_NEON}q{W}: Quit")
             print(C_BOX + "══════════════════════════════════════════" + W)
             
             cmd = input(f"{C_BOX}▶ Pilihan Anda: {W}").strip().lower()
 
             if cmd in ("r", "refresh", "1"):
                 print(f"{C_BOX}Memperbarui data...{W}")
-                continue # Kembali ke awal loop untuk refresh
+                continue
                 
-            elif cmd in ("q", "quit", "exit", "2"):
+            elif cmd in ("d", "diag", "diagnostik", "2"):
+                os.system("clear")
+                print_banner()
+                check_system_diagnostics()
+                input(f"\n{C_BOX}Tekan Enter untuk kembali ke menu utama...{W}")
+                continue
+
+            elif cmd in ("q", "quit", "exit", "3"):
                 print(f"{C_NEON}Keluar dari EraldForge WI-FI INFO. Sampai jumpa!{W}")
                 break
             else:
-                print(f"{R}Pilihan tidak dikenal. Masukkan r atau q.{W}")
+                print(f"{R}Pilihan tidak dikenal. Masukkan r, d, atau q.{W}")
                 input(f"{C_BOX}Tekan Enter untuk melanjutkan...{W}")
                 
         except EOFError:
@@ -233,7 +295,7 @@ def main():
             sys.exit(0)
         except Exception as e:
             print(f"{R}Terjadi error tak terduga: {e}{W}")
-            print(f"{Y}Mohon pastikan utilitas jaringan seperti 'ip', 'iw', atau 'netcfg' terinstal.{W}")
+            print(f"{Y}Mohon periksa kembali konfigurasi sistem Anda. Detail: {e}{W}")
             input(f"{C_BOX}Tekan Enter untuk melanjutkan...{W}")
 
 if __name__ == "__main__":
