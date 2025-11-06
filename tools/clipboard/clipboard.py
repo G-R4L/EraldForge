@@ -220,7 +220,7 @@ def main():
         print(BANNER)
         print(f"{C}EraldForge Clipboard Manager v4.0{W}")
         print(f"{C}──────────────────────────────────────────────{W}")
-        print(f"[1] Ambil dari Clipboard - Salin item saat ini dari clipboard sistem ke riwayat.")
+        print(f"[1] Ambil dari Clipboard - Salin item saat ini dari clpboard sistem ke riwayt.")
         print(f"[2] Simpan Manual        - Masukkan teks secara manual ke riwayat.")
         print(f"[3] Tampilkan Riwayat    - Lihat 100 item terakhir yang tersimpan.")
         print(f"[4] Tempel ke Clipboard  - Salin item dari riwayat ke clipboard aktif.")
