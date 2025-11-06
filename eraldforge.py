@@ -39,16 +39,13 @@ C = THEMES[CURRENT_THEME]
 
 # ---------------- Banner ASCII ----------------
 # Banner baru: EraldForge (Gaya Standard)
-# PERHATIKAN: Saya menghilangkan bingkai (___)---(_____) karena banner yang Anda berikan
-# tidak menyertakannya dan membuatnya lebih sulit untuk diwarnai secara presisi.
-# Bingkai akan dibuat di UI secara terpisah.
 BANNER_LINES = [
-    " _____           _     _ _____                    ",
+    " _____             _     _ _____                    ",
     "| ____|_ __ __ _| | __| |  ___|__  _ __ __ _  ___ ",
     "|  _| | '__/ _` | |/ _` | |_ / _ \| '__/ _` |/ _ \\",
     "| |___| | | (_| | | (_| |  _| (_) | | | (_| |  __/",
     "|_____|_|  \__,_|_|\__,_|_|  \___/|_|  \__, |\\___|",
-    "                                       |___/      ",
+    "                                   |___/      ",
 ]
 
 def colored_banner():
@@ -469,13 +466,21 @@ def show_menu():
     # PERBAIKAN: Hitung padding untuk menengahkan tagline
     width = term_width()
     tag = S["tag"]
-    # Menghitung padding, diasumsikan width cukup besar
-    # (width - len(tag)) / 2
-    padding = " " * ((width - len(tag)) // 2)
     
-    print(C["accent"] + "══════════════════════════════════════════════════════════" + C["reset"])
+    # 1. Buat garis aksen sepanjang lebar terminal
+    accent_line = C["accent"] + "═" * width + C["reset"]
+    
+    # 2. Hitung padding untuk menengahkan tagline
+    padding = " " * ((width - len(tag)) // 2)
+
+    # Cetak garis pertama (Full Width)
+    print(accent_line)
+    
+    # Cetak tagline (Tepat di tengah dengan padding)
     print(padding + C["title"] + S["tag"] + C["reset"])
-    print(C["accent"] + "══════════════════════════════════════════════════════════" + C["reset"])
+    
+    # Cetak garis kedua (Full Width)
+    print(accent_line)
     
     now = datetime.now().strftime("%H:%M:%S")
     # Menggunakan C['time'] untuk warna jam
@@ -522,7 +527,8 @@ def show_menu():
     for code, title, desc in extras:
         print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
-    print(C["accent"] + "══════════════════════════════════════════════════════════" + C["reset"])
+    # Cetak garis terakhir (Full Width)
+    print(accent_line)
     print(S["prompt"], end="")
 
 def theme_menu():
