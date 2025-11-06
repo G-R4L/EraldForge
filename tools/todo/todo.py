@@ -30,7 +30,7 @@ BANNER_LINES = [
     C_NEON + ": " + BOLD + "_____         _       " + W + C_NEON + ":" + W,
     C_NEON + ": " + BOLD + "|_   _|__   __| | ___  " + W + C_NEON + ":" + W,
     C_NEON + ": " + BOLD + "  | |/ _ \\ / _` |/ _ \\ " + W + C_NEON + ":" + W,
-    C_NEON + ":  | | (_) | (_| | (_) |" + W + C_NEON + ":" + W,
+    C_NEON + ":  | | (_) |  (_| | (_) |" + W + C_NEON + ":" + W,
     C_NEON + ": " + BOLD + "  |_|\\___/ \\__,_|\\___/ " + W + C_NEON + ":" + W,
     C_NEON + "·························" + W,
 ]
