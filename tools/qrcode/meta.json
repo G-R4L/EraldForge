@@ -1,7 +1,7 @@
 {
-  "name": "QR Code Generator",
-  "id": "qrcode",
-  "desc": "Buat QR code dari teks atau URL. Menyimpan PNG dan menampilkan ASCII di terminal.",
+  "name": "EraldForge: QR Code Generator Pro",
+  "id": "qrcode_generator_pro",
+  "desc": "Generator QR Code tingkat profesional. Mendukung enkoding Teks/URL, Konfigurasi Wi-Fi (untuk koneksi cepat), dan Kartu Kontak VCard (untuk berbagi detail kontak). Kustomisasi penuh meliputi ECC Level, Box Size, Border, serta Warna Foreground dan Background (kode HEX). Output PNG berkualitas tinggi dan preview ASCII berwarna di terminal.",
   "entry": "qrcode_gen.py",
   "lang": "python",
   "security": false
