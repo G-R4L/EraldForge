@@ -42,11 +42,11 @@ C = THEMES[CURRENT_THEME]
 BANNER_LINES = [
     " ____           ___      __ ____       ",
     "/\\  _`\\       /\\_ \\    /\\ \\/\\  _`\\     ",
-    "\\ \\ \\L\\_\\ _ __  __ \\//\\ \\  \\_\\ \\ \\ \\L\\_\\___  _ __   __      __  ",
-    " \\ \\  _\\L /\\`'__\\/'__`\\ \\ \\ \\ /'_` \\ \\  _\\/ __`\\/\\`'__\\/'_ `\\ /'__`\\ ",
-    "  \\ \\ \\L\\ \\ \\ \\//\\ \\L\\.\\_ \\_\\ \\_/\ \L\\ \ \\ \\/\ \L\ \ \ \//\ \L\ \/\  __/",
-    "   \\ \____/\ \_\\\\ \__/.\_\/\____\ \___,_\ \_\ \____/\ \_\\\\ \____ \ \____\\",
-    "    \/___/  \/_/ \/__/\/_/\/____/\/__,_ /\/_/\/___/  \/_/ \/___L\ \\/____/",
+    "\\ \ \L\_\ _ __  __ \//\ \  \_\ \ \ \L\_\___  _ __   __      __  ",
+    " \ \  _\L /\\`'__\\/'__`\ \ \ \ /'_` \ \  _\\/ __`\/\\`'__\\/'_ `\ /'__`\ ",
+    "  \ \ \L\ \ \ \//\ \L\.\_ \_\ \_/\ \L\ \ \ \/\ \L\ \ \ \//\ \L\ \/\  __/",
+    "   \ \____/\ \_\\\\ \__/.\_\/\____\ \___,_\ \_\ \____/\ \_\\\\ \____ \ \____\\",
+    "    \/___/  \/_/ \/__/\/_/\/____/\/__,_ /\/_/\/___/  \/_/ \/___L\ \/____/",
     "                                                      /\\____/  ",
     "                                                      \\_/__/   "
 ]
@@ -475,8 +475,8 @@ def show_menu():
         desc = meta_desc or default_desc
         desc = shorten(desc, desc_col)
         
-        # WARNA TOOLS 1-8: Judul (C['title']) untuk Judul dan Deskripsi
-        print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['title']}{desc}{C['reset']}")
+        # PERBAIKAN KRITIS: Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Tools 1-8
+        print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
     # Tampilkan menu tambahan (U, T, S, A, 0)
     print(C["accent"] + "──────────────────────────────────────────────" + C["reset"])
@@ -488,7 +488,7 @@ def show_menu():
         ("0", "Keluar", "tutup program")
     ]
     
-    # PERBAIKAN: Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Menu Tambahan
+    # Menggunakan C['desc'] (PUTIH) untuk DESKRIPSI Menu Tambahan (Sudah benar)
     for code, title, desc in extras:
         print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
 
