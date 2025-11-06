@@ -38,26 +38,82 @@ CURRENT_THEME = "default"
 C = THEMES[CURRENT_THEME]
 
 # ---------------- Banner ASCII ----------------
-# Banner baru yang sudah dirapikan (PIRATE)
+# Banner baru: EraldForge (Gaya Chunky Box)
 BANNER_LINES = [
-    " _______            _    _ _______      ",
-    "(_______)          | || | (_______)    ",
-    " _____    ____ ____|  | | |_____ ___  ____ ____ ____ ",
-    "| ___)  / ___) _ \|| / || | ___   _ \ \ / ___) _ |/ _ )",
-    "| |_____| |  ( ( | | ( (_| | |  | |_| | |  ( ( | ( (/ /",
-    "|_______)_|   \_||_|_|\____|_|   \___/|_|   \_|| |\____)",
-    "                                           (_____|    "
+    " _____                                                    _____ ",
+    "( ___ )--------------------------------------------------( ___ )",
+    " |   |                                                    |   | ",
+    " |   |  _____           _     _ _____                     |   | ",
+    " |   | | ____|_ __ __ _| | __| |  ___|__  _ __ __ _  ___  |   | ",
+    " |   | |  _| | '__/ _` | |/ _` | |_ / _ \| '__/ _` |/ _ \ |   | ",
+    " |   | | |___| | | (_| | | (_| |  _| (_) | | | (_| |  __/ |   | ",
+    " |   | |_____|_|  \__,_|_|\__,_|_|  \___/|_|  \__, |\___| |   | ",
+    " |   |                                        |___/       |   | ",
+    " |___|                                                    |___| ",
+    "(_____)--------------------------------------------------(_____)"
 ]
 
 def colored_banner():
-    """Mencetak banner dengan warna."""
+    """Mencetak banner dengan warna Erald Merah dan Forge Biru."""
     out = []
-    for i, ln in enumerate(BANNER_LINES):
-        # Mempertahankan skema warna sebelumnya (Merah untuk baris atas, Biru untuk baris bawah)
-        if i <= 4:
-            out.append("\033[31m" + ln + C["reset"])
-        else:
-            out.append("\033[34m" + ln + C["reset"])
+    # Warna Merah untuk Erald (\033[31m) dan Biru untuk Forge (\033[34m)
+    # Teks "ERALDFORGE" ada di baris 4 hingga 8.
+    
+    # Baris 0 - 3 (Bingkai atas)
+    for i in range(4):
+        out.append(C["accent"] + BANNER_LINES[i] + C["reset"])
+        
+    # Baris 4 - 8 (Teks "ERALD FORGE" - Pewarnaan Kustom)
+    for i in range(4, 9):
+        line = BANNER_LINES[i]
+        
+        # Posisi awal Erald (Baris 4, kolom 10)
+        # Posisi awal Forge (Baris 4, sekitar kolom 38)
+        
+        # Erald: 10 karakter setelah kolom 10
+        # Forge: 15 karakter setelah kolom 38
+        
+        # Mengidentifikasi string untuk 'ERALD' dan 'FORGE'
+        # Baris 4: 
+        # |   | | ____|_ __ __ _| | __| |  ___|__  _ __ __ _  ___  |   | 
+        #           ^ E R A L D            ^ F O R G E
+        
+        # Pewarnaan Erald (Baris 4-8): Dari awal huruf E di kolom 10 hingga D di kolom 27 (17 karakter)
+        # Pewarnaan Forge (Baris 4-8): Dari awal huruf F di kolom 38 hingga E di kolom 55 (17 karakter)
+        
+        # Menggunakan Merah (31m) untuk Erald dan Biru (34m) untuk Forge
+        # Pewarnaan manual untuk memastikan presisi:
+        
+        if i == 4:
+            # Baris 4: |   | | ____|_ __ __ _| | __| |  ___|__  _ __ __ _  ___  |   | 
+            # Erald: | ____|_ __ __ _
+            # Forge: |  ___|__  _ __ __ _
+            line = (line[:9] + C["title"] + line[9:27] + C["reset"] + line[27:37] + C["desc"] + line[37:55] + C["reset"] + line[55:])
+        elif i == 5:
+            # Baris 5: |   | |  _| | '__/ _` | |/ _` | |_ / _ \| '__/ _` |/ _ \ |   | 
+            # Erald: |  _| | '__/ _` 
+            # Forge: | |_ / _ \| '__/ _` 
+            line = (line[:9] + C["title"] + line[9:27] + C["reset"] + line[27:37] + C["desc"] + line[37:55] + C["reset"] + line[55:])
+        elif i == 6:
+            # Baris 6: |   | | |___| | | (_| | | (_| |  _| (_) | | | (_| |  __/ |   | 
+            # Erald: | |___| | | (_| 
+            # Forge: |  _| (_) | | | (_|
+            line = (line[:9] + C["title"] + line[9:27] + C["reset"] + line[27:37] + C["desc"] + line[37:55] + C["reset"] + line[55:])
+        elif i == 7:
+            # Baris 7: |   | |_____|_|  \__,_|_|\__,_|_|  \___/|_|  \__, |\___| |   | 
+            # Erald: |_____|_|  \__,
+            # Forge: |_|  \___/|_|  \__, 
+            line = (line[:9] + C["title"] + line[9:27] + C["reset"] + line[27:37] + C["desc"] + line[37:55] + C["reset"] + line[55:])
+        elif i == 8:
+            # Baris 8: |   |                                        |___/       |   | 
+            line = (line[:9] + C["title"] + line[9:27] + C["reset"] + line[27:37] + C["desc"] + line[37:55] + C["reset"] + line[55:])
+
+        out.append(line)
+
+    # Baris 9 - 10 (Bingkai bawah)
+    for i in range(9, len(BANNER_LINES)):
+        out.append(C["accent"] + BANNER_LINES[i] + C["reset"])
+
     return "\n".join(out)
 
 # ---------------- Menu ----------------
