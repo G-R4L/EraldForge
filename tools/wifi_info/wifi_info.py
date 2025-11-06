@@ -19,16 +19,24 @@ W      = "\033[0m"       # Reset
 BOLD   = "\033[1m"
 DIM    = "\033[2m"       # Dim
 
-# ---------------- Banner ASCII (KUNING NEON KESELURUHAN & Fixed Escape) ----------------
+# Pastikan variabel warna ini sudah didefinisikan di lingkungan Anda.
+C_NEON = '\033[93m' # Placeholder untuk Warna Kuning Neon
+W = '\033[0m'     # Placeholder untuk Reset Warna
+BOLD = '\033[1m'  # Placeholder untuk Efek Bold
+
+# Total lebar bingkai adalah 44 karakter (di antara tanda kutip).
+# Semua baris di antara titik-titik batas harus memiliki 42 karakter konten (di luar dua tanda ':').
 BANNER_LINES = [
     C_NEON + "············································" + W,
-    C_NEON + BOLD + ":__      ___  __ _  ___       __      " + C_NEON + ":",
-    C_NEON + BOLD + ":\\ \     / (_)/ _(_) |_ _|_ __  / _| ___  " + C_NEON + ":",
-    C_NEON + BOLD + ": \ \ /\ / /| | |_| |  | || '_ \\| |_ / _ \\ " + C_NEON + ":",
-    C_NEON + BOLD + ":  \\ V  V / | |  _| |  | || | | |  _| (_) |" + C_NEON + ":",
-    C_NEON + BOLD + ":  \\_/\\_/  |_|_| |_| |___|_| |_|_|  \\___/ " + C_NEON + ":",
+    C_NEON + BOLD + ":__      ___  __ _  ___        __          " + C_NEON + ":", # Sudah ditambah 6 spasi
+    C_NEON + BOLD + ":\ \      / (_)/ _(_) |_ _|_ __  / _| ___    " + C_NEON + ":", # Sudah ditambah 2 spasi
+    C_NEON + BOLD + ": \ \ /\ / /| | |_| |  | || '_ \| |_ / _ \  " + C_NEON + ":", # Sudah ditambah 2 spasi
+    C_NEON + BOLD + ":  \ V  V / | |  _| |  | || | | |  _| (_) |  " + C_NEON + ":", # Sudah ditambah 2 spasi
+    C_NEON + BOLD + ":  \_/\_/  |_|_| |_| |___|_| |_|_|  \___/   " + C_NEON + ":", # Sudah ditambah 2 spasi
     C_NEON + "············································" + W,
 ]
+# Catatan: Spasi non-breaking (seperti \xa0) telah diganti dengan spasi standar 
+# untuk memastikan konsistensi alignment di berbagai terminal.
 
 def print_banner():
     """Mencetak banner dan header utama aplikasi."""
