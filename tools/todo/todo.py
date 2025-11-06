@@ -15,23 +15,25 @@ FILE = HOME / ".eraldforge_todo.json"
 CURRENT_FILTER = "all" # 'all', 'high', 'med', 'low', 'done', 'todo'
 
 # ---------------- Colors & Style ----------------
-C_NEON = "\033[93m"    # Neon Yellow (Banner, High Priority)
-C_BOX  = "\033[96m"    # Cyan (Box/Headers)
-G      = "\033[32m"    # Green (DONE status)
-R      = "\033[91m"    # Red (DELETE / WARNING)
-Y      = "\033[33m"    # Yellow (General Text, Medium Priority)
-W      = "\033[0m"     # Reset
+C_NEON = "\033[93m"     # Neon Yellow (Banner, High Priority)
+C_BOX  = "\033[96m"     # Cyan (Box/Headers)
+G      = "\033[32m"     # Green (DONE status)
+R      = "\033[91m"     # Red (DELETE / WARNING)
+Y      = "\033[33m"     # Yellow (General Text, Medium Priority)
+W      = "\033[0m"      # Reset
 BOLD   = "\033[1m"
-DIM    = "\033[2m"     # Dim (For completed tasks)
+DIM    = "\033[2m"      # Dim (For completed tasks)
 
-# ---------------- Banner ASCII ----------------
+# ---------------- Banner ASCII (Telah Dirapikan & Warna Konsisten) ----------------
+# Menggunakan C_NEON untuk border dan W untuk Reset
+# Panjang total setiap baris adalah 25 karakter.
 BANNER_LINES = [
     C_NEON + "·························" + W,
-    C_NEON + ": " + BOLD + "_____         _       " + W + C_NEON + ":" + W,
-    C_NEON + ": " + BOLD + "|_   _|__   __| | ___  " + W + C_NEON + ":" + W,
-    C_NEON + ": " + BOLD + "  | |/ _ \\ / _` |/ _ \\ " + W + C_NEON + ":" + W,
-    C_NEON + ":               | | (_) |  (_| | (_) |" + W + C_NEON + ":" + W,
-    C_NEON + ": " + BOLD + "  |_|\\___/ \\__,_|\\___/ " + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + G + " _____         _       " + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + G + "|_   _|__   __| | ___  " + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + G + "  | |/ _ \ / _` |/ _ \ " + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + G + "  | | (_) | (_| | (_) |" + W + C_NEON + ":" + W,
+    C_NEON + ":" + BOLD + G + "  |_|\___/ \__,_|\___/ " + W + C_NEON + ":" + W,
     C_NEON + "·························" + W,
 ]
 
@@ -93,16 +95,17 @@ def apply_filters(data):
     elif CURRENT_FILTER == "todo":
         filtered_data = [t for t in data if not t.get("done")]
     else: # high, med, low (priority filters)
-        filtered_data = [t for t in data if t.get("priority", "med") == CURRENT_FILTER]
+        filtered_data = [t for t in data if t.get("priority", "med").lower() == CURRENT_FILTER]
         
     # 2. Sorting: Belum selesai (False) di atas, Selesai (True) di bawah,
     #    dan diurutkan berdasarkan prioritas (High > Med > Low) di antara yang belum selesai.
     def sort_key(t):
         prio_map = {"high": 3, "med": 2, "low": 1}
-        prio_val = prio_map.get(t.get("priority", "med"), 0)
+        # Gunakan .get("priority", "med").lower() untuk memastikan perbandingan yang benar
+        prio_val = prio_map.get(t.get("priority", "med").lower(), 0)
         
         # Primary sort: done (False/0 before True/1)
-        # Secondary sort: priority (descending)
+        # Secondary sort: priority (descending: -prio_val)
         # Tertiary sort: due date (ascending) - menggunakan string date agar dapat diurutkan
         due_date = t.get("due", "9999-12-31")
         return (t.get("done", False), -prio_val, due_date)
@@ -152,13 +155,15 @@ def show(data):
         # 2. Due Date (10 karakter) - Highlight Overdue
         due_str = t.get("due", "-").ljust(10)
         due = due_str
-        if due_str != "-" and not is_done:
+        if due_str.strip() != "-" and not is_done:
             try:
+                # Membersihkan spasi sebelum parsing
                 due_date = datetime.strptime(due_str.strip(), "%Y-%m-%d").date()
                 if due_date < datetime.now().date():
                     due = f"{R}OVERDUE{W}" # Highlight Overdue
             except ValueError:
-                pass # Ignore if date format is wrong
+                # Jika format tanggal salah, biarkan saja
+                pass 
         
         # 3. Status (Dibuat 6 karakter visual agar rata)
         if is_done:
@@ -191,6 +196,7 @@ def handle_filter_command():
     else: 
         print(f"{R}Filter tidak valid.{W}")
         input(f"{C_BOX}Tekan Enter untuk melanjutkan...{W}")
+        return # Keluar dari fungsi filter
     
     print_banner()
     if CURRENT_FILTER != "all":
@@ -219,9 +225,12 @@ def main():
                 # Tambah
                 task = input(f"{G}Task:{W} ").strip()
                 if not task: continue
-                pr = input(f"{Y}Priority (low/med/high) [med]:{W} ").strip() or "med"
+                # Ambil input dan pastikan 'med' adalah default
+                pr_input = input(f"{Y}Priority (low/med/high) [med]:{W} ").strip()
+                pr = pr_input.lower() if pr_input else "med"
                 due = input(f"{Y}Due (YYYY-MM-DD) [blank]:{W} ").strip()
-                data.append({"task": task, "priority": pr.lower(), "due": due, "done": False})
+                
+                data.append({"task": task, "priority": pr, "due": due, "done": False})
                 save(data)
                 print_banner()
                 print(f"{G}Task '{task}' ditambahkan.{W}")
@@ -258,9 +267,16 @@ def main():
                     print_banner()
                     print(f"{C_BOX}Mengedit Tugas {raw_idx}: '{current['task']}'{W}")
                     
-                    data[original_index]["task"] = input(f"Task baru [{current['task']}]: ").strip() or current["task"]
-                    data[original_index]["priority"] = input(f"Priority baru [{current['priority']}]: ").strip().lower() or current["priority"]
-                    data[original_index]["due"] = input(f"Due baru [{current['due']}]: ").strip() or current["due"]
+                    # Edit fields
+                    new_task = input(f"Task baru [{current['task']}]: ").strip()
+                    if new_task: data[original_index]["task"] = new_task
+
+                    new_prio = input(f"Priority baru [{current.get('priority', 'med')}]: ").strip().lower()
+                    if new_prio: data[original_index]["priority"] = new_prio
+                    
+                    new_due = input(f"Due baru [{current.get('due', '')}]: ").strip()
+                    if new_due: data[original_index]["due"] = new_due
+
                     save(data)
                     
                     print_banner()
@@ -303,7 +319,7 @@ def main():
                 confirm = input(f"{R}Ketik 'YES' untuk konfirmasi: {W}").strip()
                 
                 if confirm == "YES":
-                    clean_done_tasks(data)
+                    data = clean_done_tasks(data) # Pastikan data di-update
                 else:
                     print_banner()
                     print(f"{Y}Penghapusan dibatalkan.{W}")
