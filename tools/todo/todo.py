@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/env python3
-# EraldForge - Todo Manager (Pro Edition - Filtered)
-# Upgraded for better aesthetics, color-coded status, filter/sort, and modern CLI look.
+# EraldForge - Todo Manager (Pro Edition - Complete)
+# Upgraded for 8 features, including Filter/Sort, Refresh, and Clear Completed.
 
 import json
 import os
@@ -61,6 +61,24 @@ def save(data):
         FILE.write_text(json.dumps(data, indent=2), encoding='utf-8')
     except Exception as e:
         print(f"{R}Error menyimpan data: {e}{W}")
+
+# ---------------- New Feature: Clean Done Tasks ----------------
+def clean_done_tasks(data):
+    """Menghapus semua tugas yang ditandai 'done'."""
+    initial_count = len(data)
+    # Filter tugas yang TIDAK selesai (done=False)
+    updated_data = [t for t in data if not t.get("done", False)]
+    deleted_count = initial_count - len(updated_data)
+    
+    if deleted_count > 0:
+        save(updated_data)
+        print_banner()
+        print(f"{G}{BOLD}✅ Berhasil membersihkan {deleted_count} tugas yang sudah selesai.{W}")
+    else:
+        print_banner()
+        print(f"{Y}Tidak ada tugas yang selesai untuk dibersihkan.{W}")
+    input(f"{C_BOX}Tekan Enter untuk melanjutkan...{W}")
+    return updated_data # Return updated data to main loop
 
 # ---------------- Filter and Sort Logic ----------------
 def apply_filters(data):
@@ -188,11 +206,11 @@ def main():
             data = load()
             show(data)
             
-            # Menu Pilihan Baru dan Canggih
+            # Menu Pilihan Baru dan Canggih (8 Opsi)
             print(f"\n{C_BOX}{BOLD}===== MENU AKSI =====" + W)
-            print(f"{C_BOX}1.{W} {G}a{W}: Add Task    | {C_BOX}2.{W} {G}t{W}: Toggle Done/Todo | {C_BOX}3.{W} {G}e{W}: Edit Detail")
-            print(f"{C_BOX}4.{W} {R}d{W}: Delete Task | {C_BOX}5.{W} {Y}f{W}: Filter/Sort  | {C_BOX}6.{W} {C_BOX}r{W}: Refresh List")
-            print(f"{C_BOX}7.{W} {C_NEON}q{W}: Quit")
+            print(f"{C_BOX}1.{W} {G}a{W}: Add Task      | {C_BOX}2.{W} {G}t{W}: Toggle Done/Todo | {C_BOX}3.{W} {G}e{W}: Edit Detail")
+            print(f"{C_BOX}4.{W} {R}d{W}: Delete Task   | {C_BOX}5.{W} {Y}f{W}: Filter/Sort      | {C_BOX}6.{W} {C_BOX}r{W}: Refresh List")
+            print(f"{C_BOX}7.{W} {R}c{W}: Clean DONE    | {C_BOX}8.{W} {C_NEON}q{W}: Quit")
             print(C_BOX + "══════════════════════════════════════════" + W)
             
             cmd = input(f"{C_BOX}▶ Pilihan Anda: {W}").strip().lower()
@@ -214,11 +232,9 @@ def main():
                 try: idx_display = int(raw_idx) - 1
                 except ValueError: print(f"{R}Input harus angka.{W}"); input(f"{C_BOX}Tekan Enter...{W}"); print_banner(); continue
                 
-                # Cari index sebenarnya di data mentah (raw data)
                 display_data = apply_filters(data)
                 if 0 <= idx_display < len(display_data):
                     original_task = display_data[idx_display]
-                    # Temukan index di data mentah untuk update
                     original_index = data.index(original_task) 
                     
                     data[original_index]["done"] = not data[original_index].get("done", False)
@@ -278,12 +294,26 @@ def main():
                 # Refresh Menu
                 print_banner()
                 print(f"{C_BOX}Daftar berhasil diperbarui!{W}")
+            
+            elif cmd == "c":
+                # Clean Done Tasks
+                # Peringatan sebelum menghapus
+                print_banner()
+                print(f"{R}{BOLD}⚠️ PERINGATAN!{W} Ini akan menghapus PERMANEN semua tugas yang sudah selesai (DONE).")
+                confirm = input(f"{R}Ketik 'YES' untuk konfirmasi: {W}").strip()
+                
+                if confirm == "YES":
+                    clean_done_tasks(data)
+                else:
+                    print_banner()
+                    print(f"{Y}Penghapusan dibatalkan.{W}")
+                    input(f"{C_BOX}Tekan Enter untuk melanjutkan...{W}")
                 
             elif cmd in ("q", "quit", "exit"):
                 print(f"{C_NEON}Keluar dari EraldForge Todo. Sampai jumpa!{W}")
                 break
             else:
-                print(f"{R}Pilihan tidak dikenal. Masukkan a, t, e, d, f, r, atau q.{W}")
+                print(f"{R}Pilihan tidak dikenal. Masukkan a, t, e, d, f, r, c, atau q.{W}")
                 input(f"{C_BOX}Tekan Enter untuk melanjutkan...{W}")
                 print_banner()
                 
