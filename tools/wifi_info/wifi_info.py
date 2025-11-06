@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
-# EraldForge WI-FI INFO Tool
-# Sebuah utilitas untuk menampilkan informasi jaringan Wi-Fi di lingkungan Termux atau Linux.
+# Membuat Python script lengkap dengan banner ASCII yang telah diperbaiki.
+# Skrip ini berfungsi untuk menampilkan informasi jaringan Wi-Fi di lingkungan Termux atau Linux.
 
 import os
 import sys
@@ -19,24 +18,27 @@ W      = "\033[0m"       # Reset
 BOLD   = "\033[1m"
 DIM    = "\033[2m"       # Dim
 
-# Pastikan variabel warna ini sudah didefinisikan di lingkungan Anda.
-C_NEON = '\033[93m' # Placeholder untuk Warna Kuning Neon
-W = '\033[0m'     # Placeholder untuk Reset Warna
-BOLD = '\033[1m'  # Placeholder untuk Efek Bold
+# Variabel warna placeholder (untuk memastikan kompatibilitas)
+C_NEON = '\033[93m' 
+W = '\033[0m'      
+BOLD = '\033[1m'   
 
-# Total lebar bingkai adalah 44 karakter (di antara tanda kutip).
-# Semua baris di antara titik-titik batas harus memiliki 42 karakter konten (di luar dua tanda ':').
+# TOTAL LEBAR BINGKAI = 44 KARAKTER
+# TOTAL LEBAR KONTEN (antara ':') = 42 KARAKTER
 BANNER_LINES = [
     C_NEON + "············································" + W,
-    C_NEON + BOLD + ":__      ___  __ _  ___        __          " + C_NEON + ":", # Sudah ditambah 6 spasi
-    C_NEON + BOLD + ":\ \      / (_)/ _(_) |_ _|_ __  / _| ___    " + C_NEON + ":", # Sudah ditambah 2 spasi
-    C_NEON + BOLD + ": \ \ /\ / /| | |_| |  | || '_ \| |_ / _ \  " + C_NEON + ":", # Sudah ditambah 2 spasi
-    C_NEON + BOLD + ":  \ V  V / | |  _| |  | || | | |  _| (_) |  " + C_NEON + ":", # Sudah ditambah 2 spasi
-    C_NEON + BOLD + ":  \_/\_/  |_|_| |_| |___|_| |_|_|  \___/   " + C_NEON + ":", # Sudah ditambah 2 spasi
+    # Baris 1: Diperbaiki agar total 42 karakter
+    C_NEON + BOLD + ":__      ___  __ _  ___        __          " + C_NEON + ":", 
+    # Baris 2: Diperbaiki agar total 42 karakter
+    C_NEON + BOLD + ":\ \      / (_)/ _(_) |_ _|_ __  / _| ___   " + C_NEON + ":", 
+    # Baris 3: Diperbaiki agar total 42 karakter
+    C_NEON + BOLD + ": \ \ /\ / /| | |_| |  | || '_ \| |_ / _ \  " + C_NEON + ":", 
+    # Baris 4: Diperbaiki agar total 42 karakter
+    C_NEON + BOLD + ":  \ V  V / | |  _| |  | || | | |  _| (_) | " + C_NEON + ":", 
+    # Baris 5: Diperbaiki agar total 42 karakter
+    C_NEON + BOLD + ":   \_/\_/  |_|_| |_| |___|_| |_|_|  \___/  " + C_NEON + ":", 
     C_NEON + "············································" + W,
 ]
-# Catatan: Spasi non-breaking (seperti \xa0) telah diganti dengan spasi standar 
-# untuk memastikan konsistensi alignment di berbagai terminal.
 
 def print_banner():
     """Mencetak banner dan header utama aplikasi."""
@@ -95,7 +97,7 @@ def get_wifi_interface():
                     return name
                 # Fallback ke ethernet/interface aktif lainnya selain loopback
                 if name != "lo":
-                     return name
+                    return name
 
     # 2. Cek dengan 'netcfg' (khusus Termux/Android lama)
     netcfg_output = run_cmd(["netcfg"])
@@ -128,8 +130,8 @@ def show_instructions():
     print(f"{Y}2. Instal Python:{W} {G}pkg install python{W}")
     print(f"{Y}3. Instal Utilitas Jaringan Dasar:{W} {G}pkg install iproute2 iw{W}")
     print(f"{Y}4. (PENTING) Untuk Pemindaian Wi-Fi, instal Termux API:{W}")
-    print(f"    {G}pkg install termux-api{W}")
-    print(f"    {G}termux-setup-storage{W} (Izinkan akses penyimpanan jika diminta)")
+    print(f"   {G}pkg install termux-api{W}")
+    print(f"   {G}termux-setup-storage{W} (Izinkan akses penyimpanan jika diminta)")
     
     print(BOLD + "\n[B] Instalasi di Linux (Debian/Ubuntu/Kali):" + W)
     print(f"{Y}1. Instal Python 3 dan PIP:{W} {G}sudo apt update && sudo apt install python3 python3-pip{W}")
@@ -147,15 +149,15 @@ def show_instructions():
     print(Y + "Layar akan menampilkan 3 bagian laporan otomatis dan Menu Aksi di bawah:" + W)
     
     print(f"{BOLD}\n[A] Laporan Otomatis:{W}")
-    print(f"    {G}1. STATUS KONEKSI:{W} Status Antarmuka (UP/DOWN), IP Address, BSSID, dan SSID yang sedang terhubung.")
-    print(f"    {G}2. PEMINDAIAN JARINGAN:{W} Daftar jaringan Wi-Fi di sekitar (SSID, kekuatan sinyal, BSSID, dan Enkripsi).")
-    print(f"    {G}3. DIAGNOSTIK SISTEM:{W} (Hanya ditampilkan setelah memilih 'd') Memeriksa ketersediaan alat penting seperti 'ip' dan 'iw'.")
+    print(f"   {G}1. STATUS KONEKSI:{W} Status Antarmuka (UP/DOWN), IP Address, BSSID, dan SSID yang sedang terhubung.")
+    print(f"   {G}2. PEMINDAIAN JARINGAN:{W} Daftar jaringan Wi-Fi di sekitar (SSID, kekuatan sinyal, BSSID, dan Enkripsi).")
+    print(f"   {G}3. DIAGNOSTIK SISTEM:{W} (Hanya ditampilkan setelah memilih 'd') Memeriksa ketersediaan alat penting seperti 'ip' dan 'iw'.")
 
     print(f"{BOLD}\n[B] Menu Aksi:{W}")
-    print(f"    {G}[r] Refresh:{W} Memuat ulang semua data status dan pemindaian di layar.")
-    print(f"    {R}[d] Diagnostik:{W} Menjalankan pemeriksaan ketersediaan alat (direkomendasikan jika ada error).")
-    print(f"    {Y}[h] Panduan/Help:{W} Menampilkan layar panduan ini.")
-    print(f"    {C_NEON}[q] Quit:{W} Keluar dari aplikasi.")
+    print(f"   {G}[r] Refresh:{W} Memuat ulang semua data status dan pemindaian di layar.")
+    print(f"   {R}[d] Diagnostik:{W} Menjalankan pemeriksaan ketersediaan alat (direkomendasikan jika ada error).")
+    print(f"   {Y}[h] Panduan/Help:{W} Menampilkan layar panduan ini.")
+    print(f"   {C_NEON}[q] Quit:{W} Keluar dari aplikasi.")
     
     print("\n" + C_BOX + "========================================" + W)
     input(f"{C_BOX}Tekan Enter untuk kembali ke Menu Utama...{W}")
@@ -248,9 +250,9 @@ def scan_available_networks(interface):
         scan_output = run_cmd(["iw", interface, "scan"])
         
         if not scan_output:
-             print(f"{R}Perintah 'iw' atau 'termux-wifi-scan' tidak ditemukan atau gagal.{W}")
-             print(f"{R}Pastikan Anda telah menginstal 'iw' dan 'termux-api'. Ketik '{Y}h{R}' untuk panduan instalasi.{W}")
-             return
+              print(f"{R}Perintah 'iw' atau 'termux-wifi-scan' tidak ditemukan atau gagal.{W}")
+              print(f"{R}Pastikan Anda telah menginstal 'iw' dan 'termux-api'. Ketik '{Y}h{R}' untuk panduan instalasi.{W}")
+              return
 
     if is_json_scan:
         # Parsing output termux-wifi-scan (JSON)
@@ -363,7 +365,7 @@ def main():
                 check_system_diagnostics()
                 input(f"\n{C_BOX}Tekan Enter untuk kembali ke menu utama...{W}")
                 continue
-            
+                
             elif cmd in ("h", "help", "panduan", "3"): # Menampilkan panduan baru
                 show_instructions()
                 continue
