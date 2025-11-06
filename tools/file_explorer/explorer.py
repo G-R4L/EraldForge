@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/env python3
 # EraldForge File Explorer v6.0 - Advanced Terminal File Explorer
-# Fitur: Banner Neon, Dual Theme (Pro/Hacker), Navigasi Cepat, Detail File Ekstensif, ZIP/UNZIP, Hapus Rekursif.
+# Fitur: Banner Neon Baru, Dual Theme, Navigasi Cepat, Detail Ekstensif, ZIP/UNZIP, Hapus Rekursif.
 
 import os, shutil, stat, zipfile
 from pathlib import Path
@@ -14,7 +14,7 @@ APP_NAME = "EraldForge File Explorer"
 
 # --- Definisi Warna & Gaya ---
 # Warna untuk "Pro" Theme (Default: Biru/Cyan)
-C_PRO_DIR = "\033[96m"  # Cyan untuk Direktori
+C_PRO_DIR = "\033[96m"   # Cyan untuk Direktori
 C_PRO_FILE = "\033[37m" # Putih untuk File
 C_PRO_SIZE = "\033[94m" # Biru terang untuk ukuran
 C_PRO_TIME = "\033[35m" # Magenta untuk waktu
@@ -33,50 +33,56 @@ Y = "\033[93m"     # Kuning Neon (Banner)
 W = "\033[0m"      # Reset
 BOLD = "\033[1m"   # Tebal
 
-# --- Manajemen Tema (Ditingkatkan) ---
-def get_theme_config():
-    """Mengambil tema yang dipilih user atau default 'pro'."""
+# --- Fungsi Banner ASCII (Neon) ---
+def get_banner(show_info=True, theme_name="pro", prompt_color=C_PRO_PROMPT, dir_color=C_PRO_DIR, time_color=C_PRO_TIME):
+    """Mencetak banner ASCII sesuai permintaan dengan warna Neon dan info tema."""
+    ASCII_LINES = [
+        f"{Y}·························································{W}",
+        f"{Y}: {BOLD}_____ _ _        _____            _                     :{W}",
+        f"{Y}:|  ___(_) | ___  | ____|_  ___ __ | | ___  _ __ ___ _ __ :{W}",
+        f"{Y}:| |_  | | |/ _ \ |  _| \ \/ / '_ \| |/ _ \| '__/ _ \ '__|:{W}",
+        f"{Y}:|  _| | | |  __/ | |___ >  <| |_) | | (_) | | |  __/ |   :{W}",
+        f"{Y}:|_|   |_|_|\___| |_____/_/\_\ .__/|_|\___/|_|  \___|_|   :{W}",
+        f"{Y}:                            |_|                          :{W}",
+        f"{Y}·························································{W}",
+    ]
+    
+    output = "\n".join(ASCII_LINES)
+    
+    if show_info:
+        info_line = (
+            f"\n{BOLD}{prompt_color}:: {APP_NAME} v{VERSION}{W} | "
+            f"{dir_color}Theme: {theme_name.capitalize()}{W} | "
+            f"{time_color}Time: {datetime.now().strftime('%H:%M:%S')}{W}\n"
+        )
+        output += info_line
+    
+    return output
+
+# --- Manajemen Tema (Ditingkatkan & Diperbaiki) ---
+def get_theme_choice():
+    """Meminta pilihan tema saat inisialisasi."""
     os.system('clear')
-    print(get_banner(show_info=False)) # Tampilkan banner tanpa info waktu
+    
+    # Tampilkan banner awal dengan warna default, karena tema belum dipilih
+    print(get_banner(show_info=False, prompt_color=C_PRO_PROMPT, dir_color=C_PRO_DIR, time_color=C_PRO_TIME)) 
+    
     print(f"{BOLD}{Y}:: KONFIGURASI TEMA ::{W}")
+    # Coba ambil dari environment variable
     t = os.environ.get("ERALDFORGE_THEME", "").lower()
     if t in ("hacker", "pro"): return t
     
+    # Minta input user
     t = input(f"{Y}Pilih Tema [{C_PRO_PROMPT}pro{W}/{C_HACK_PROMPT}hacker{W}] (default pro) > {W}").strip().lower()
     return t if t in ("hacker", "pro") else "pro"
 
-THEME_NAME = get_theme_config()
+# --- Inisialisasi Tema (Penting: harus dilakukan sebelum main) ---
+THEME_NAME = get_theme_choice()
 
 if THEME_NAME == "hacker":
     DIR_COLOR, FILE_COLOR, SIZE_COLOR, TIME_COLOR, PROMPT_COLOR = C_HACK_DIR, C_HACK_FILE, C_HACK_SIZE, C_HACK_TIME, C_HACK_PROMPT
 else:
     DIR_COLOR, FILE_COLOR, SIZE_COLOR, TIME_COLOR, PROMPT_COLOR = C_PRO_DIR, C_PRO_FILE, C_PRO_SIZE, C_PRO_TIME, C_PRO_PROMPT
-
-# --- Fungsi Banner ASCII (Neon) ---
-def get_banner(show_info=True):
-    """Mencetak banner ASCII sesuai permintaan dengan warna Neon."""
-    ASCII_LINES = [
-        "·························································",
-        ": _____ _ _        _____            _       _           :",
-        ":|  ___(_) | ___  | ____|_  ___ __ | | ___ | | ___ _ __ :",
-        ":| |_  | | |/ _ \\ |  _| \\ \\/ / '_ \\| |/ _ \\| |/ _ \\ '__|:",
-        ":|  _| | | |  __/ | |___ >  <| |_) | | (_) | |  __/ |   :",
-        ":|_|   |_|_|\\___| |_____/_/\\_\\ .__/|_|\\___/|_|\\___|_|   :",
-        ":                            |_|                        :",
-        "·························································",
-    ]
-    
-    banner_ascii = [f"{Y}{line}{W}" for line in ASCII_LINES]
-    
-    if show_info:
-        info_line = (
-            f"\n{BOLD}{PROMPT_COLOR}:: {APP_NAME} v{VERSION}{W} | "
-            f"{DIR_COLOR}Theme: {THEME_NAME.capitalize()}{W} | "
-            f"{TIME_COLOR}Time: {datetime.now().strftime('%H:%M:%S')}{W}\n"
-        )
-        return "\n".join(banner_ascii) + info_line
-    
-    return "\n".join(banner_ascii) + "\n"
 
 # --- Utilitas Data & Format ---
 def human_size(n):
@@ -92,7 +98,8 @@ def get_permissions(path):
         s = path.stat().st_mode
         # Format: d/f + rwx (user)
         perm = ('d' if stat.S_ISDIR(s) else '-')
-        perm += stat.filemode(s)[1:4] # Hanya izin user
+        # Ambil hanya izin user (rwx)
+        perm += stat.filemode(s)[1:4] 
         return perm
     except:
         return '????'
@@ -102,19 +109,23 @@ def list_dir(p):
     p = Path(p).expanduser().resolve()
     if not p.is_dir(): return []
     
-    # Tambahkan '..' untuk navigasi ke atas
-    items = [(Path(p.parent), "..")] if p != Path('/') else []
+    # Tambahkan '..' untuk navigasi ke atas (selalu index 1)
+    items = [(p.parent, "..")] if p != Path('/') else []
     
     try:
-        # Sortir: Direktori di atas, kemudian berdasarkan nama
+        # Tambahkan item di direktori
         items.extend([(it, it.name) for it in p.iterdir()])
+        # Sortir: Direktori di atas (kecuali '..'), kemudian berdasarkan nama
         items = sorted(items, key=lambda x: (not x[0].is_dir() if x[1] != '..' else False, x[1].lower()))
     except Exception as e:
         print(f"{R}ERROR: Gagal membaca direktori: {e}{W}")
         return []
     
     res = []
-    for i, (path_obj, name) in enumerate(items, start=1):
+    # Beri index pada item (index 1 untuk '..' jika ada)
+    start_index = 1 if items and items[0][1] == ".." else 1
+    
+    for i, (path_obj, name) in enumerate(items, start=start_index):
         if name == "..":
             size_str = "<UP>"
             mod_time = ""
@@ -141,6 +152,7 @@ def list_dir(p):
         
         # Simpan tuple: (index, Nama, Ukuran, Waktu, Izin, Path, Warna)
         res.append((i, name, size_str, mod_time, perm, path_obj, color))
+    
     return res
 
 # --- Fitur File Manager (Diperluas) ---
@@ -148,7 +160,7 @@ def list_dir(p):
 def action_preview(path: Path):
     """Menampilkan isi file (4KB pertama)."""
     os.system('clear')
-    print(get_banner())
+    print(get_banner(theme_name=THEME_NAME, prompt_color=PROMPT_COLOR, dir_color=DIR_COLOR, time_color=TIME_COLOR))
     print(f"{BOLD}{PROMPT_COLOR}:: PREVIEW FILE: {path.name} ::{W}")
     print(f"{'='*50}\n")
     try:
@@ -243,16 +255,41 @@ def action_copy_move(cwd: Path, action: str):
 
 # --- Loop Utama Program ---
 def main():
+    # Perintah untuk mendapatkan target dari list berdasarkan index/nama (perbaikan logika)
+    def get_target_from_list(target_str, item_list, current_dir):
+        # 1. Coba sebagai Index
+        try:
+            idx = int(target_str)
+            if 1 <= idx <= len(item_list):
+                return item_list[idx - 1] # Mengembalikan tuple item
+        except ValueError:
+            pass # Lanjut coba sebagai nama
+        
+        # 2. Coba sebagai Nama/Relative Path
+        p = current_dir / target_str
+        if p.exists():
+            # Temukan item di list yang cocok dengan nama ini
+            for item in item_list:
+                if item[1] == target_str:
+                    return item
+            # Jika item tidak ada di list (misal hidden file, tapi di-target langsung)
+            return (0, target_str, '', '', '', p, '') # Format dummy
+
+        return None
+
     os.system('clear')
     cwd = HOME
     
     while True:
         os.system('clear')
-        print(get_banner())
+        # Gunakan parameter tema yang sudah diinisialisasi
+        print(get_banner(theme_name=THEME_NAME, prompt_color=PROMPT_COLOR, dir_color=DIR_COLOR, time_color=TIME_COLOR))
         
         # Tampilkan Direktori Saat Ini
         print(f"{BOLD}{DIR_COLOR}:: PWD: {W}{cwd.resolve()}")
-        print("-" * (os.get_terminal_size().columns if os.get_terminal_size().columns < 80 else 80))
+        # Tentukan lebar baris untuk kerapian
+        term_width = os.get_terminal_size().columns if os.get_terminal_size().columns < 80 else 80
+        print("-" * term_width)
         
         items = list_dir(cwd)
 
@@ -264,20 +301,19 @@ def main():
             mtime_fmt = f"{TIME_COLOR}{mtime:<16}{W}"
             perm_fmt = f"{DIR_COLOR}{perm:<5}{W}"
             
-            if name == "..":
-                # Item UP/..
-                print(f"[{Y}UP{W}] {perm_fmt} {size_fmt} {mtime_fmt} {color}{BOLD}..{W}")
-            else:
-                # Item Normal
-                print(f"[{PROMPT_COLOR}{i:02}{W}] {perm_fmt} {size_fmt} {mtime_fmt} {color}{name}{W}")
+            # Khusus untuk ".." gunakan label yang jelas
+            index_display = f"{Y}UP{W}" if name == ".." else f"{PROMPT_COLOR}{i:02}{W}"
+
+            # Item Normal
+            print(f"[{index_display}] {perm_fmt} {size_fmt} {mtime_fmt} {color}{name}{W}")
         
-        print("-" * (os.get_terminal_size().columns if os.get_terminal_size().columns < 80 else 80))
+        print("-" * term_width)
         
         # Menu Perintah Canggih
         print(f"{BOLD}{PROMPT_COLOR}MENU:{W}")
         print(f"  {Y}u{W}=Up | {Y}cd <dir>{W}=ChangeDir | {Y}ls{W}=Refresh/List")
         print(f"  {Y}p <idx/name>{W}=Preview | {Y}d <idx/name>{W}=Delete (Rec.)")
-        print(f"  {Y}c/m{W}=Copy/Move | {Y}z <name>{W}=Zip | {Y}un <name>{W}=Unzip")
+        print(f"  {Y}c/m{W}=Copy/Move | {Y}z <idx/name>{W}=Zip | {Y}un <idx/name>{W}=Unzip")
         print(f"  {Y}q{W}=Quit/Exit")
 
         command = input(f"{PROMPT_COLOR}CMD > {W}").strip()
@@ -294,20 +330,25 @@ def main():
                  print(f"{Y}Anda sudah berada di root directory!{W}")
             else:
                 cwd = cwd.parent
-            continue
+            continue # Lanjut ke loop berikutnya (refresh)
             
         elif action in ("ls", "list"):
-            # Lanjutkan loop untuk refresh
-            continue
+            continue # Lanjut ke loop berikutnya (refresh)
 
         elif action in ("cd", "chdir"):
             try:
-                new_path = Path(target).expanduser().resolve()
+                # Coba resolusi path absolut atau relatif
+                new_path = Path(target).expanduser()
                 if not new_path.is_absolute():
                     new_path = cwd / target
                 
+                # Check jika target adalah index, dan dapatkan nama foldernya
+                selected_item_cd = get_target_from_list(target, items, cwd)
+                if selected_item_cd:
+                    new_path = selected_item_cd[5] # Ambil Path dari tuple item
+                
                 if new_path.is_dir():
-                    cwd = new_path
+                    cwd = new_path.resolve()
                 else:
                     print(f"{R}❌ Error: '{target}' bukan direktori atau tidak ditemukan.{W}")
             except Exception as e:
@@ -315,47 +356,45 @@ def main():
             input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
             continue
 
-        # Perintah yang memerlukan target (idx atau nama)
-        selected_item = None
-        if target:
-            # 1. Coba sebagai Index
-            try:
-                idx = int(target)
-                if 1 <= idx <= len(items):
-                    selected_item = items[idx - 1]
-            except ValueError:
-                # 2. Coba sebagai Nama/Relative Path
-                p = cwd / target
-                if p.exists():
-                    selected_item = (0, target, '', '', '', p, '') # Format dummy
-            
+        # --- Aksi dengan Target ---
+        selected_item = get_target_from_list(target, items, cwd)
+
         if not selected_item and action in ('p', 'd', 'z', 'un'):
             print(f"{R}❌ Target tidak valid atau tidak ditemukan.{W}")
             input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
             continue
 
-        # Eksekusi Aksi
-        path_to_act = selected_item[5] if selected_item else (cwd / target)
+        path_to_act = selected_item[5] if selected_item else None
         
         if action == "p":
-            if path_to_act.is_file():
+            if path_to_act and path_to_act.is_file():
                 action_preview(path_to_act)
-            elif path_to_act.is_dir():
-                cwd = path_to_act # Masuk ke direktori jika preview pada folder
+            elif path_to_act and path_to_act.is_dir() and selected_item[1] != '..':
+                # Masuk ke direktori jika preview pada folder, tapi abaikan '..'
+                cwd = path_to_act.resolve() 
             else:
-                print(f"{R}❌ '{path_to_act.name}' bukan file atau direktori.{W}")
+                print(f"{R}❌ Target bukan file.{W}")
                 input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
                 
         elif action == "d":
-            action_delete(path_to_act)
+            if path_to_act and selected_item[1] != '..':
+                action_delete(path_to_act)
+            else:
+                print(f"{R}❌ Tidak bisa menghapus direktori parent (..).{W}")
             input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
             
         elif action == "z":
-            action_zip_folder(cwd, path_to_act.name)
+            if path_to_act and path_to_act.is_dir():
+                action_zip_folder(cwd, path_to_act.name)
+            else:
+                print(f"{R}❌ Target bukan folder untuk di-ZIP.{W}")
             input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
             
         elif action == "un":
-            action_unzip_file(cwd, path_to_act.name)
+            if path_to_act and path_to_act.is_file() and path_to_act.suffix.lower() == '.zip':
+                action_unzip_file(cwd, path_to_act.name)
+            else:
+                print(f"{R}❌ Target bukan file .zip.{W}")
             input(f"{PROMPT_COLOR}Tekan ENTER untuk melanjutkan...{W}")
             
         elif action in ("c", "copy"):

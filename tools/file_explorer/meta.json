@@ -2,7 +2,7 @@
   "name": "EraldForge File Explorer",
   "id": "eraldfg_file_explorer",
   "desc": "Terminal File Explorer v6.0: Navigasi Cepat, Detail File Lanjut (izin/waktu), ZIP/UNZIP, Copy/Move, dan Hapus Rekursif.",
-  "entry": "profile.py",
+  "entry": "explorer.py",
   "version": "6.0",
   "lang": "python",
   "security": false
