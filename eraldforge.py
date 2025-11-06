@@ -28,6 +28,7 @@ ERALD_LANG = "id"
 
 # ---------------- color palette ----------------
 THEMES = {
+    # Default: 'title' adalah Biru (\033[34m). 'desc' adalah Putih (\033[37m).
     "default": {"num":"\033[36m","title":"\033[34m","desc":"\033[37m","accent":"\033[33m","reset":"\033[0m","bold":"\033[1m"},
     "matrix": {"num":"\033[32m","title":"\033[32m","desc":"\033[37m","accent":"\033[92m","reset":"\033[0m","bold":"\033[1m"},
     "cyberpunk":{"num":"\033[95m","title":"\033[96m","desc":"\033[37m","accent":"\033[93m","reset":"\033[0m","bold":"\033[1m"},
@@ -452,7 +453,7 @@ def show_menu():
     desc_width = width - (num_col + name_col + 5) # sisa untuk deskripsi
     desc_col = max(20, desc_width)
 
-    # Tampilkan menu tools
+    # Tampilkan menu tools (1-8)
     for i, (tid, default_desc) in enumerate(MENU_LIST, start=1):
         title = tid.replace("_", " ").title()
         
@@ -469,10 +470,10 @@ def show_menu():
         desc = meta_desc or default_desc
         desc = shorten(desc, desc_col)
         
-        # Format string untuk menu item (Judul Tool menggunakan C['title'])
-        print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['desc']}{desc}{C['reset']}")
+        # PERBAIKAN DI SINI: Mengubah Deskripsi Tools (1-8) dari C['desc'] ke C['title']
+        print(f"{C['num']}[{i}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['title']}{desc}{C['reset']}")
 
-    # Tampilkan menu tambahan (update, tema, system monitor, tentang, keluar)
+    # Tampilkan menu tambahan (U, T, S, A, 0)
     print(C["accent"] + "──────────────────────────────────────────────" + C["reset"])
     extras = [
         ("U", "Update GitHub", "tarik update dari repo"),
@@ -482,10 +483,8 @@ def show_menu():
         ("0", "Keluar", "tutup program")
     ]
     
-    # PERBAIKAN PEWARNAAN DI SINI:
-    # Mengubah deskripsi dari C['desc'] menjadi C['title']
+    # SUDAH BENAR: Menggunakan C['title'] untuk judul dan DESKRIPSI
     for code, title, desc in extras:
-        # Menggunakan C['num'] untuk kode dan C['title'] untuk judul dan DESKRIPSI
         print(f"{C['num']}[{code}]{C['reset']} {C['title']}{title:<{name_col}}{C['reset']} - {C['title']}{desc}{C['reset']}")
 
     print(C["accent"] + "══════════════════════════════════════════════════════════" + C["reset"])
