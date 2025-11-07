@@ -1,7 +1,12 @@
-# 🛠️ EraldForge (Termux)
+# EraldForge (Termux)
 
 EraldForge adalah koleksi multitools Python modular yang dirancang khusus untuk Termux/terminal. Penekanan utama proyek ini adalah pada aspek ethical dan non-intrusive, dengan semua fitur sensitif memerlukan konfirmasi pengguna.
 
+### 🚀 Cara Menjalankannya
+1. Klon Repositori
+```bash 
+git clone https://github.com/G-R4L/EraldForge.git
+```
 
 ### 🔄 Pembaruan Manual
 
