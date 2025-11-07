@@ -1,5 +1,5 @@
 # EraldForge (**Termux**)
-![File](EraldForge/File/EraldForge.png)
+![EraldForge](EraldForge/image/eraldforge.png)
 
 EraldForge adalah kumpulan alat serbaguna Python untuk Termux dan terminal
 Tool ini masih dalam pengembangan dan akan terus diperbarui
