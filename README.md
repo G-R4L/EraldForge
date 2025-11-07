@@ -7,10 +7,8 @@ EraldForge adalah koleksi multitools Python modular yang dirancang khusus untuk 
 Jika tool seperti Port Scanner atau QR Code Generator gagal dijalankan dari menu utama, eksekusi manual file Python-nya secara langsung:
 Tools yang Gagal
 Perintah Manual
-Port Scanner
-``bash
-cd ~/EraldForge/tools/portscan && python port_scanner.py
 
-QR Code Generator
+Port Scanner dan QR Code Generator
 ```bash
+cd ~/EraldForge/tools/portscan && python port_scanner.py
 cd ~/EraldForge/tools/qrcode && python qrcode_gen.py
