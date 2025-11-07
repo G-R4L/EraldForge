@@ -1,10 +1,12 @@
 # EraldForge (Termux)
 
-![EraldForge](EraldForge/image/eraldforge.jpg)
-
 EraldForge adalah kumpulan alat serbaguna Python untuk Termux dan terminal
 Tool ini masih dalam pengembangan dan akan terus diperbarui
 Jika ada kendala atau masalah mohon dimaklumi
+
+### 🌌 ScreeShoot 
+![EraldForge](EraldForgeimages/eraldforge.jpg)
+
 
 ### 🚀 Cara Install & Menjalankannya
 ```bash 
