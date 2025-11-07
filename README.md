@@ -1,13 +1,16 @@
-# EraldForge (Termux)
+# 🛠️ EraldForge (Termux)
 
-EraldForge = multitools untuk Termux (Python-first). Penekanan: **ethical** & non-intrusive.
+EraldForge adalah koleksi multitools Python modular yang dirancang khusus untuk Termux/terminal. Penekanan utama proyek ini adalah pada aspek ethical dan non-intrusive, dengan semua fitur sensitif memerlukan konfirmasi pengguna.
 
-Instal:
-1. git clone <repo> atau transfer folder ke Termux.
-2. cd eraldforge
-3. bash install.sh
-4. jalankan: eraldforge
+### ⚠️ Pemecahan Masalah: Eksekusi Tools Manual
 
-Tools contoh: Calculator, Clipboard manager, WiFi info (readonly), Port scanner (wrapper to nmap), File explorer, Todo.
+Jika tool seperti Port Scanner atau QR Code Generator gagal dijalankan dari menu utama, eksekusi manual file Python-nya secara langsung:
+Tools yang Gagal
+Perintah Manual
+Port Scanner
+``bash
+cd ~/EraldForge/tools/portscan && python port_scanner.py
 
-Security tools always ask for consent and log it to ~/.eraldforge_consent.log
+QR Code Generator
+```bash
+cd ~/EraldForge/tools/qrcode && python qrcode_gen.py
