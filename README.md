@@ -1,4 +1,4 @@
-# EraldForge (Termux)
+# EraldForge (**Termux**)
 
 EraldForge adalah kumpulan alat serbaguna Python untuk Termux dan terminal
 Tool ini masih dalam pengembangan dan akan terus diperbarui
