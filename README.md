@@ -7,7 +7,7 @@ EraldForge adalah koleksi multitools Python modular yang dirancang khusus untuk 
 git clone https://github.com/G-R4L/EraldForge.git
 cd EraldForge
 bash install.sh
-
+python eraldforge.py
 ```
 
 ### 🔄 Pembaruan Manual
