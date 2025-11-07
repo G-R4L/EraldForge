@@ -26,11 +26,12 @@ Jika tool seperti Port Scanner atau QR Code Generator gagal dijalankan dari menu
 Tools yang Gagal
 Perintah Manual
 
-Port Scanner
+Port Scanner :
 ```bash
 cd ~/EraldForge/tools/portscan && python port_scanner.py
 ```
-QR Code Generator
-```
+QR Code Generator :
+
+```bash
 cd ~/EraldForge/tools/qrcode && python qrcode_gen.py
 ```
