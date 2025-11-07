@@ -2,10 +2,12 @@
 
 EraldForge adalah koleksi multitools Python modular yang dirancang khusus untuk Termux/terminal. Penekanan utama proyek ini adalah pada aspek ethical dan non-intrusive, dengan semua fitur sensitif memerlukan konfirmasi pengguna.
 
-### 🚀 Cara Menjalankannya
-1. Klon Repositori
+### 🚀 Cara Install & Menjalankannya
 ```bash 
 git clone https://github.com/G-R4L/EraldForge.git
+cd EraldForge
+bash install.sh
+
 ```
 
 ### 🔄 Pembaruan Manual
@@ -20,7 +22,7 @@ Jika tool seperti Port Scanner atau QR Code Generator gagal dijalankan dari menu
 Tools yang Gagal
 Perintah Manual
 
-Port Scanner dan QR Code Generator
+Port Scanner
 ```bash
 cd ~/EraldForge/tools/portscan && python port_scanner.py
 ```
