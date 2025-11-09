@@ -24,8 +24,8 @@ cd ~/EraldForge && git reset --hard && git pull origin main && python3 eraldforg
 
 Jika tool seperti Port Scanner atau QR Code Generator gagal dijalankan dari menu utama, eksekusi manual file Python-nya secara langsung:
 Tools yang Gagal
-Perintah Manual
-
+Perintah Manual (Disarankan untuk menjalankannya secara manual karena dari menu terdapat masalah dan tools tidak sesuai
+)
 Port Scanner :
 ```bash
 cd ~/EraldForge/tools/portscan && python port_scanner.py
